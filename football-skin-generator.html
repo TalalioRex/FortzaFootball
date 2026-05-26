@@ -1711,7 +1711,10 @@ function processFrameForCasino(frameCanvas, frameIdx, assetKey, preset, assetTyp
   outCtx.putImageData(id,0,0);
   let result=out;
   if(isPlayer&&preset.player.number){
-    const anchor=maskLib[assetKey]?.anchors?.[frameIdx];
+    // Fall back to any available anchor if this specific frame doesn't have one placed
+    const anchor = maskLib[assetKey]?.anchors?.[frameIdx]
+      || maskLib[assetKey]?.anchors?.find(a => a != null)
+      || null;
     if(anchor) result=renderNumberOnFrame(result, anchor, {number:preset.player.number,color:preset.player.numberColor||'#FFF',size:42,stroke:1.5,strokeColor:'#000',bold:true,opacity:0.9});
   }
   return result;
