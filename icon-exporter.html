@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Icon Exporter — Game Lounge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&family=Syne:wght@600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  /* ── GL Brand tokens ── */
+  :root {
+    --gl-purple:   #4b1797;
+    --gl-accent:   #6b28cc;
+    --gl-dark-bg:  #0c0818;
+    --gl-main-bg:  #f7f5ff;
+    --gl-surface:  #ffffff;
+    --gl-text:     #150e30;
+    --gl-muted:    #5a4d82;
+    --gl-green:    #10b981;
+    --gl-red:      #ef4444;
+  }
+
+  body {
+    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--gl-main-bg);
+    color: var(--gl-text);
+    min-height: 100vh;
+    padding: 0 0 2rem;
+  }
+
+  /* ── GL Header bar ── */
+  .gl-header {
+    background: var(--gl-dark-bg);
+    border-bottom: 1px solid rgba(107, 40, 204, 0.3);
+    padding: 0 1.5rem;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 2rem;
+  }
+  .gl-header img {
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+    flex-shrink: 0;
+  }
+  .gl-header-brand {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    color: #d0c4f4;
+    letter-spacing: 0.04em;
+    text-transform: lowercase;
+  }
+  .gl-header-divider {
+    width: 1px;
+    height: 20px;
+    background: rgba(208, 196, 244, 0.2);
+  }
+  .gl-header-app {
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    color: #ffffff;
+    flex: 1;
+  }
+  .gl-header-back {
+    font-family: 'Outfit', sans-serif;
+    font-size: 13px;
+    color: #7060a0;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: color 0.15s;
+  }
+  .gl-header-back:hover { color: #d0c4f4; }
+
+  .page { max-width: 860px; margin: 0 auto; padding: 0 1rem; }
+
+  h1 { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 700; margin-bottom: 4px; color: var(--gl-text); }
+  .subtitle { font-size: 14px; color: var(--gl-muted); margin-bottom: 2rem; }
+
+  .drop-zone {
+    border: 1.5px dashed #c4b8e8;
+    border-radius: 12px;
+    background: var(--gl-surface);
+    padding: 3rem 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    margin-bottom: 2rem;
+  }
+  .drop-zone.drag-over { border-color: var(--gl-purple); background: #f0ebff; }
+  .drop-zone input { display: none; }
+  .drop-icon { font-size: 36px; margin-bottom: 12px; }
+  .drop-label { font-size: 15px; font-weight: 500; margin-bottom: 6px; color: var(--gl-text); }
+  .drop-hint { font-size: 13px; color: var(--gl-muted); }
+
+  .size-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 2rem;
+  }
+  .size-toggle-label { font-size: 14px; color: var(--gl-muted); margin-right: 4px; }
+  .size-btn {
+    padding: 6px 16px;
+    border-radius: 20px;
+    border: 1px solid #c4b8e8;
+    background: var(--gl-surface);
+    font-size: 13px;
+    font-weight: 500;
+    font-family: 'Outfit', sans-serif;
+    cursor: pointer;
+    color: var(--gl-muted);
+    transition: all 0.12s;
+  }
+  .size-btn.active {
+    background: var(--gl-purple);
+    border-color: var(--gl-purple);
+    color: #fff;
+  }
+  .size-btn:not(.active):hover {
+    border-color: var(--gl-accent);
+    color: var(--gl-purple);
+  }
+
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 2rem;
+  }
+  .stat-card {
+    background: var(--gl-surface);
+    border: 0.5px solid #ddd6f8;
+    border-radius: 8px;
+    padding: 1rem;
+    text-align: center;
+  }
+  .stat-num { font-size: 24px; font-weight: 600; color: var(--gl-purple); font-family: 'Syne', sans-serif; }
+  .stat-label { font-size: 12px; color: var(--gl-muted); margin-top: 2px; }
+
+  .export-section {
+    background: var(--gl-surface);
+    border: 0.5px solid #ddd6f8;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 2rem;
+  }
+  .export-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 0.5px solid #ede8ff;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gl-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .format-row {
+    display: flex;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    border-bottom: 0.5px solid #f4f1ff;
+    gap: 12px;
+  }
+  .format-row:last-child { border-bottom: none; }
+
+  .format-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 20px;
+    min-width: 52px;
+    text-align: center;
+  }
+  .badge-png { background: #e8f0ff; color: #2c54c4; }
+  .badge-svg { background: #fdf2e0; color: #a05f00; }
+  .badge-webp { background: #e6f6ee; color: #1a6b42; }
+
+  .format-desc { flex: 1; font-size: 14px; color: var(--gl-muted); }
+  .format-size { font-size: 12px; color: #aaa; margin-right: 8px; }
+
+  .btn-export {
+    background: var(--gl-text);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 18px;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: 'Outfit', sans-serif;
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+  }
+  .btn-export:hover { background: var(--gl-purple); }
+  .btn-export:disabled { opacity: 0.35; cursor: not-allowed; }
+  .btn-export:disabled:hover { background: var(--gl-text); }
+
+  .btn-all {
+    display: block;
+    width: 100%;
+    background: var(--gl-purple);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 14px;
+    font-size: 15px;
+    font-weight: 600;
+    font-family: 'Outfit', sans-serif;
+    cursor: pointer;
+    transition: background 0.15s;
+    margin-bottom: 2rem;
+  }
+  .btn-all:hover { background: var(--gl-accent); }
+  .btn-all:disabled { opacity: 0.35; cursor: not-allowed; }
+  .btn-all:disabled:hover { background: var(--gl-purple); }
+
+  .preview-section {
+    background: var(--gl-surface);
+    border: 0.5px solid #ddd6f8;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .preview-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 0.5px solid #ede8ff;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gl-muted);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .preview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 1px;
+    background: #ede8ff;
+    max-height: 400px;
+    overflow-y: auto;
+  }
+  .preview-item {
+    background: var(--gl-surface);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 8px;
+    gap: 6px;
+  }
+  .preview-item img { width: 36px; height: 36px; object-fit: contain; }
+  .preview-item span {
+    font-size: 10px;
+    color: var(--gl-muted);
+    text-align: center;
+    word-break: break-all;
+    max-width: 72px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .status-bar {
+    margin-top: 1.5rem;
+    font-size: 13px;
+    color: var(--gl-muted);
+    text-align: center;
+    min-height: 20px;
+  }
+  .status-bar.success { color: var(--gl-green); }
+  .status-bar.error { color: var(--gl-red); }
+
+  .progress-wrap { display: none; margin-top: 1rem; }
+  .progress-track {
+    background: #ede8ff;
+    border-radius: 20px;
+    height: 6px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--gl-purple);
+    border-radius: 20px;
+    width: 0%;
+    transition: width 0.1s;
+  }
+  .progress-label { font-size: 12px; color: var(--gl-muted); margin-top: 6px; text-align: center; }
+</style>
+</head>
+<body>
+
+<!-- GL Header -->
+<header class="gl-header">
+  <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAh0AAAIdCAYAAACZYM/nAAAACXBIWXMAAAsSAAALEgHS3X78AAAgAElEQVR4nO3dzXUbR7oG4M9zZi/dCMTpBMiJQJhFr8WJQHAE5o0A6AiGjsBQBKbXWBiMwFQCGDKCK0agu+iiREn8AUkAVdX9POfgSNbQ8ju2CL786qd/+vz5cwAA7NrfcgcAAMZB6QAA9kLpAAD2QukAAPZC6QAA9kLpAAD2QukAAPZC6QAA9kLpAAD2QukAAPbi77kDAMBztE03ST89SK8bl8v1bLHnOGxA6QCgWG3THURfKCbxtVwcRcSrB/6284hY7DAWz6R0AFCEVDCO0msSj5cLKqN0AJBF23S3C8YkIt7kzMPuKR0A7EWaZExCyRgtpQOAnUmbPY+jLxmHWcOQndIBwNa0Tfc6vpaM47Ang1uUDgBe5FbROI6Id5njUDClA4AnUzR4DqUDgI20TXdTNN7nzkJ9lA4AHpSOtk7Tyx4Nnk3pAOAHaflkml5OnbAVSgcAX6QjrtOwfMIOKB0AI3drU+g8XNjFDikdACOVbgidh/s02BOlA2Bk0hLKPCLe5k3C2CgdACPRNt00LKGQkdIBMGBpv8ZJ9JtDlQ2yUjoABuhW2TgJ+zUohNIBMCDKBiVTOgAGQNmgBkoHQAWUDWqidABUSNmgRkoHQGUcfaVWSgdAJdKlXotQNqiU0gFQuHRd+SLcIErllA6AQqV9G/OI+CVzFNgKpQOgQGnfxmnYJMqAKB0ABWmb7ij6smEphcH5W+4AAPTapptHxF+hcDBQJh0AmTmVwlgoHQCZ2CjK2CgdABmYbjBG9nQA7Fnau/FnKByMjEkHwJ6kS77OIuIwbxLIw6QDYA/SvRsXoXAwYiYdADuUNoueRsT73FkgN6UDYEcsp8C3LK8A7EA6nWI5BW4x6YARSVdsv05/Obn1P72OiKM7/pajeNqzP87v+LXL9LqxuvnJcj1bxQCl/Ru/5c4Bpfnp8+fPuTMAW5D2DhxFxMF3r9dR/nfbHyPiU3wtKDevi+V69ilXqOiam3QUKgzf2a0Puu88DQAASUVORK5CYII=" alt="Game Lounge">
+  <span class="gl-header-brand">game lounge</span>
+  <div class="gl-header-divider"></div>
+  <span class="gl-header-app">Icon Exporter</span>
+  <a href="gamelounge-hub.html" class="gl-header-back">&#8592; Hub</a>
+</header>
+
+<div class="page">
+
+  <h1>Icon Exporter</h1>
+  <p class="subtitle">Drop a ZIP of SVGs — export all icons at your chosen size as PNG, SVG, or WebP</p>
+
+  <div class="drop-zone" id="dropZone">
+    <input type="file" id="fileInput" accept=".zip">
+    <div class="drop-icon">📦</div>
+    <div class="drop-label">Drop your ZIP file here</div>
+    <div class="drop-hint">or click to browse — must contain SVG files</div>
+  </div>
+
+  <div class="size-toggle">
+    <span class="size-toggle-label">Output size:</span>
+    <button class="size-btn active" onclick="setSize(72, this)">72×72</button>
+    <button class="size-btn" onclick="setSize(64, this)">64×64</button>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-num" id="statTotal">—</div>
+      <div class="stat-label">Icons found</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="statSize">72×72</div>
+      <div class="stat-label">Output size (px)</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">3</div>
+      <div class="stat-label">Export formats</div>
+    </div>
+  </div>
+
+  <div class="export-section">
+    <div class="export-header">Export formats</div>
+
+    <div class="format-row">
+      <span class="format-badge badge-png">PNG</span>
+      <span class="format-desc">Raster — transparent background, 72×72px</span>
+      <span class="format-size" id="sizePng">—</span>
+      <button class="btn-export" id="btnPng" disabled onclick="exportFormat('png')">Export PNG</button>
+    </div>
+
+    <div class="format-row">
+      <span class="format-badge badge-svg">SVG</span>
+      <span class="format-desc">Vector — width/height set to 72px</span>
+      <span class="format-size" id="sizeSvg">—</span>
+      <button class="btn-export" id="btnSvg" disabled onclick="exportFormat('svg')">Export SVG</button>
+    </div>
+
+    <div class="format-row">
+      <span class="format-badge badge-webp">WebP</span>
+      <span class="format-desc">Raster — lossless, transparent, 72×72px</span>
+      <span class="format-size" id="sizeWebp">—</span>
+      <button class="btn-export" id="btnWebp" disabled onclick="exportFormat('webp')">Export WebP</button>
+    </div>
+  </div>
+
+  <button class="btn-all" id="btnAll" disabled onclick="exportAll()">Export all formats (PNG + SVG + WebP)</button>
+
+  <div class="preview-section" id="previewSection" style="display:none;">
+    <div class="preview-header">
+      <span>Preview</span>
+      <span id="previewCount" style="font-weight:400;color:var(--gl-muted);"></span>
+    </div>
+    <div class="preview-grid" id="previewGrid"></div>
+  </div>
+
+  <div class="progress-wrap" id="progressWrap">
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="progress-label" id="progressLabel">Processing...</div>
+  </div>
+
+  <div class="status-bar" id="statusBar"></div>
+</div>
+
+<script>
+let SIZE = 72;
+let icons = [];
+
+function setSize(px, btn) {
+  SIZE = px;
+  document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('statSize').textContent = px + '×' + px;
+  const label = icons.length ? icons.length + ' files' : '—';
+  ['sizePng','sizeSvg','sizeWebp'].forEach(id => document.getElementById(id).textContent = label);
+} // [{name, svgText}]
+
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+
+dropZone.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', e => handleFile(e.target.files[0]));
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  handleFile(e.dataTransfer.files[0]);
+});
+
+async function handleFile(file) {
+  if (!file || !file.name.endsWith('.zip')) {
+    setStatus('Please upload a .zip file containing SVGs.', 'error');
+    return;
+  }
+  setStatus('Reading ZIP...', '');
+  try {
+    const zip = await JSZip.loadAsync(file);
+    const svgFiles = Object.entries(zip.files).filter(([name, f]) =>
+      !f.dir && name.toLowerCase().endsWith('.svg') && !name.startsWith('__MACOSX')
+    );
+    if (svgFiles.length === 0) {
+      setStatus('No SVG files found in that ZIP.', 'error');
+      return;
+    }
+    icons = await Promise.all(svgFiles.map(async ([name, f]) => {
+      const text = await f.async('string');
+      const baseName = name.split('/').pop().replace(/\.svg$/i, '');
+      return { name: baseName, svgText: text };
+    }));
+    updateUI();
+    renderPreviews();
+    setStatus(`Ready — ${icons.length} icon${icons.length !== 1 ? 's' : ''} loaded.`, 'success');
+  } catch (err) {
+    setStatus('Error reading ZIP: ' + err.message, 'error');
+  }
+}
+
+function updateUI() {
+  document.getElementById('statTotal').textContent = icons.length;
+  ['btnPng','btnSvg','btnWebp','btnAll'].forEach(id => document.getElementById(id).disabled = false);
+  ['sizePng','sizeSvg','sizeWebp'].forEach(id => document.getElementById(id).textContent = icons.length + ' files');
+}
+
+function renderPreviews() {
+  const grid = document.getElementById('previewGrid');
+  grid.innerHTML = '';
+  icons.forEach(icon => {
+    const blob = new Blob([icon.svgText], {type:'image/svg+xml'});
+    const url = URL.createObjectURL(blob);
+    const div = document.createElement('div');
+    div.className = 'preview-item';
+    div.innerHTML = `<img src="${url}" alt="${icon.name}"><span>${icon.name}</span>`;
+    grid.appendChild(div);
+  });
+  document.getElementById('previewSection').style.display = 'block';
+  document.getElementById('previewCount').textContent = icons.length + ' icons';
+}
+
+async function svgToPng(svgText, format) {
+  return new Promise((resolve, reject) => {
+    const blob = new Blob([svgText], {type:'image/svg+xml;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = SIZE; canvas.height = SIZE;
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, SIZE, SIZE);
+      ctx.drawImage(img, 0, 0, SIZE, SIZE);
+      URL.revokeObjectURL(url);
+      const mime = format === 'webp' ? 'image/webp' : 'image/png';
+      canvas.toBlob(b => {
+        if (!b) return reject(new Error('Canvas toBlob failed'));
+        b.arrayBuffer().then(resolve).catch(reject);
+      }, mime, 1.0);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Image load failed')); };
+    img.src = url;
+  });
+}
+
+function resizeSvg(svgText) {
+  let out = svgText.replace(/<svg([^>]*)>/i, (match, attrs) => {
+    attrs = attrs.replace(/\s*width="[^"]*"/gi, '');
+    attrs = attrs.replace(/\s*height="[^"]*"/gi, '');
+    if (!/viewBox/i.test(attrs)) attrs += ` viewBox="0 0 24 24"`;
+    return `<svg${attrs} width="${SIZE}" height="${SIZE}">`;
+  });
+  return out;
+}
+
+async function exportFormat(format) {
+  if (!icons.length) return;
+  setProgress(0, `Preparing ${format.toUpperCase()}...`);
+  const zipOut = new JSZip();
+  for (let i = 0; i < icons.length; i++) {
+    const icon = icons[i];
+    setProgress(Math.round((i / icons.length) * 100), `Processing ${icon.name}...`);
+    try {
+      if (format === 'svg') {
+        zipOut.file(`${icon.name}.svg`, resizeSvg(icon.svgText));
+      } else {
+        const buf = await svgToPng(icon.svgText, format);
+        zipOut.file(`${icon.name}.${format}`, buf);
+      }
+    } catch (e) {
+      console.warn('Skipped', icon.name, e.message);
+    }
+  }
+  setProgress(95, 'Generating ZIP...');
+  const blob = await zipOut.generateAsync({type:'blob'});
+  download(blob, `icons-${SIZE}px-${format}.zip`);
+  setProgress(100, 'Done!');
+  setTimeout(() => hideProgress(), 1200);
+  setStatus(`Exported ${icons.length} icons as ${format.toUpperCase()}.`, 'success');
+}
+
+async function exportAll() {
+  if (!icons.length) return;
+  setProgress(0, 'Preparing all formats...');
+  const zipOut = new JSZip();
+  const pngFolder = zipOut.folder('png');
+  const svgFolder = zipOut.folder('svg');
+  const webpFolder = zipOut.folder('webp');
+  const total = icons.length * 3;
+  let done = 0;
+
+  for (const icon of icons) {
+    try {
+      const pngBuf = await svgToPng(icon.svgText, 'png');
+      pngFolder.file(`${icon.name}.png`, pngBuf);
+    } catch(e) { console.warn(icon.name, 'png failed'); }
+    done++; setProgress(Math.round((done/total)*90), `PNG: ${icon.name}`);
+
+    try {
+      svgFolder.file(`${icon.name}.svg`, resizeSvg(icon.svgText));
+    } catch(e) {}
+    done++; setProgress(Math.round((done/total)*90), `SVG: ${icon.name}`);
+
+    try {
+      const webpBuf = await svgToPng(icon.svgText, 'webp');
+      webpFolder.file(`${icon.name}.webp`, webpBuf);
+    } catch(e) { console.warn(icon.name, 'webp failed'); }
+    done++; setProgress(Math.round((done/total)*90), `WebP: ${icon.name}`);
+  }
+
+  setProgress(95, 'Generating ZIP...');
+  const blob = await zipOut.generateAsync({type:'blob'});
+  download(blob, `icons-${SIZE}px-all.zip`);
+  setProgress(100, 'Done!');
+  setTimeout(() => hideProgress(), 1200);
+  setStatus(`Exported all ${icons.length} icons in PNG, SVG, and WebP.`, 'success');
+}
+
+function download(blob, filename) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+
+function setProgress(pct, label) {
+  document.getElementById('progressWrap').style.display = 'block';
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressLabel').textContent = label;
+}
+function hideProgress() {
+  document.getElementById('progressWrap').style.display = 'none';
+}
+function setStatus(msg, type) {
+  const el = document.getElementById('statusBar');
+  el.textContent = msg;
+  el.className = 'status-bar' + (type ? ' ' + type : '');
+}
+</script>
+</body>
+</html>
