@@ -1,0 +1,49 @@
+{
+  "name": "football-skin-generator",
+  "version": "1.0.0",
+  "description": "Football Skin Generator — Game Lounge",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac",
+    "build:all": "electron-builder --win --mac"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.gamelounge.football-skin-generator",
+    "productName": "Football Skin Generator",
+    "copyright": "Game Lounge",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "football-skin-generator.html",
+      "main.js",
+      "vendor/**"
+    ],
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] }
+      ],
+      "artifactName": "FootballSkinGenerator-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "deleteAppDataOnUninstall": true
+    },
+    "mac": {
+      "target": [
+        { "target": "dmg", "arch": ["x64", "arm64"] }
+      ],
+      "artifactName": "FootballSkinGenerator-${version}.${ext}"
+    },
+    "dmg": {
+      "title": "Football Skin Generator"
+    }
+  }
+}
