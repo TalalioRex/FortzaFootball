@@ -263,6 +263,23 @@ input[type=color]{width:0;height:0;opacity:0;position:absolute;}
 .rtab-lock{font-size:9px;cursor:pointer;opacity:0.35;margin-left:3px;transition:opacity 0.15s;user-select:none;display:inline-block;}
 .rtab-lock:hover{opacity:0.8;}
 .rtab-lock.locked{opacity:1;}
+/* ── Tool Panel (right side, Photoshop-style) ── */
+.tool-panel{width:176px;flex-shrink:0;background:var(--ms);border-left:1px solid var(--border2);display:flex;flex-direction:column;overflow-y:auto;padding:6px;gap:0;scrollbar-width:thin;scrollbar-color:rgba(124,58,237,0.2) transparent;}
+.tool-panel::-webkit-scrollbar{width:3px;}
+.tool-panel::-webkit-scrollbar-thumb{background:rgba(124,58,237,0.2);border-radius:2px;}
+.tp-section{display:flex;flex-direction:column;gap:3px;padding:5px 0;}
+.tp-label{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--tx3);}
+.tp-row{display:flex;align-items:center;justify-content:space-between;gap:4px;}
+.tp-sep{height:1px;background:var(--border2);margin:2px 0;flex-shrink:0;}
+.tp-grid2{display:grid;grid-template-columns:1fr 1fr;gap:3px;}
+.tp-btn{width:100%;height:26px;padding:0 8px;border-radius:6px;border:1px solid var(--border2);background:var(--ms);color:var(--tx2);font-family:var(--font);font-size:10px;font-weight:600;cursor:pointer;transition:all 0.15s;text-align:left;display:flex;align-items:center;justify-content:space-between;gap:4px;}
+.tp-btn:hover{border-color:var(--acc);color:var(--acc);}
+.tp-btn.active{background:var(--acc);border-color:var(--acc);color:#fff;box-shadow:0 0 0 3px var(--acc-dim);}
+.tp-btn.danger:hover{border-color:var(--red);color:var(--red);}
+.tp-tool{justify-content:center;text-align:center;}
+.tp-slider{width:100%;height:3px;-webkit-appearance:none;appearance:none;background:var(--border2);border-radius:2px;outline:none;cursor:pointer;display:block;}
+.tp-slider::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:var(--ms);border:2px solid var(--acc);cursor:pointer;}
+.tp-val{font-size:9px;font-family:var(--mono);color:var(--tx2);white-space:nowrap;}
 </style>
 </head>
 <body>
@@ -313,97 +330,20 @@ input[type=color]{width:0;height:0;opacity:0;position:absolute;}
       </div>
       <div class="lp-body" id="assetGrid"></div>
       <div class="lp-footer">
-        <button class="dk-btn dk-btn-acc" onclick="saveMaskLibrary()">Save mask_library.json</button>
-        <label class="dk-btn" style="cursor:pointer;">Load mask_library.json<input type="file" accept=".json" style="display:none" onchange="loadMaskLibraryFile(this.files[0]);this.value='';"></label>
+        <div style="display:flex;gap:4px;">
+          <button class="dk-btn dk-btn-acc dk-btn-sm" onclick="saveMaskLibrary('player')" style="flex:1;" title="Save player.webp + ball.webp masks">💾 Player</button>
+          <button class="dk-btn dk-btn-acc dk-btn-sm" onclick="saveMaskLibrary('goalkeeper')" style="flex:1;" title="Save all 7 goalkeeper masks">💾 GK</button>
+        </div>
+        <div style="display:flex;gap:4px;">
+          <label class="dk-btn dk-btn-sm" style="cursor:pointer;flex:1;justify-content:center;">📂 Player<input type="file" accept=".json" style="display:none" onchange="loadMaskLibraryFile(this.files[0],'player');this.value='';"></label>
+          <label class="dk-btn dk-btn-sm" style="cursor:pointer;flex:1;justify-content:center;">📂 GK<input type="file" accept=".json" style="display:none" onchange="loadMaskLibraryFile(this.files[0],'goalkeeper');this.value='';"></label>
+        </div>
         <div class="lp-status" id="maskStatus"></div>
       </div>
     </div>
 
     <!-- Right: editor (light) -->
     <div class="editor-main">
-
-      <!-- Toolbar -->
-      <div class="editor-toolbar">
-        <!-- Undo / Redo -->
-        <div class="tool-group">
-          <button class="tbtn" id="tbnUndo" onclick="doUndo()" title="Undo (Ctrl+Z)" disabled style="opacity:0.4;">↩ Undo</button>
-          <button class="tbtn" id="tbnRedo" onclick="doRedo()" title="Redo (Ctrl+Y)" disabled style="opacity:0.4;">↪ Redo</button>
-        </div>
-        <div class="tool-sep"></div>
-        <!-- Region tabs -->
-        <div class="tool-group">
-          <button class="rtab active" onclick="setRegion('shirt')" id="rtabShirt">Shirt <span class="rtab-dot" id="rdotShirt"></span><span class="rtab-lock" id="rlock_shirt" onclick="toggleRegionLock('shirt',event)" title="Lock region">🔒</span></button>
-          <button class="rtab" onclick="setRegion('socks')" id="rtabSocks">Socks <span class="rtab-dot" id="rdotSocks"></span><span class="rtab-lock" id="rlock_socks" onclick="toggleRegionLock('socks',event)" title="Lock region">🔒</span></button>
-          <button class="rtab" onclick="setRegion('shorts')" id="rtabShorts">Shorts <span class="rtab-dot" id="rdotShorts"></span><span class="rtab-lock" id="rlock_shorts" onclick="toggleRegionLock('shorts',event)" title="Lock region">🔒</span></button>
-          <button class="rtab" onclick="setRegion('skin')" id="rtabSkin">Skin <span class="rtab-dot" id="rdotSkin"></span><span class="rtab-lock" id="rlock_skin" onclick="toggleRegionLock('skin',event)" title="Lock region">🔒</span></button>
-          <button class="rtab" onclick="setRegion('number')" id="rtabNumber" style="display:none">Number <span class="rtab-dot" id="rdotNumber"></span><span class="rtab-lock" id="rlock_number" onclick="toggleRegionLock('number',event)" title="Lock region">🔒</span></button>
-        </div>
-
-        <div class="tool-sep"></div>
-
-        <!-- Selection tools -->
-        <div class="tool-group">
-          <button class="tbtn" id="tbnLasso" onclick="meTool('lasso')" title="Freehand lasso — drag to include, Alt+drag to exclude. [L]">Lasso</button>
-          <button class="tbtn active" id="tbnWand" onclick="meTool('wand')" title="Magic Wand — click=replace, Shift+click=add, Alt+click=remove. [W]">Wand</button>
-          <button class="tbtn" id="tbnRange" onclick="meTool('range')" title="Color Range — click=replace, Shift+click=add, Alt+click=remove. [R]">Range</button>
-          <button class="tbtn" id="tbnBrush" onclick="meTool('brush')" title="Brush — paint/erase mask pixels. Alt+drag to erase. [B] [ ] ]">Brush</button>
-          <button class="tbtn" id="tbnAnchor" onclick="meTool('anchor')" style="display:none" title="Place number anchor point">Place #</button>
-          <button class="tbtn" onclick="doSmooth()" title="Smooth edges — removes jagged pixels and isolated speckles (erode+dilate). [S]">Smooth</button>
-          <button class="tbtn" onclick="doInvert()" title="Invert current region mask — flips all selected/unselected pixels">Invert</button>
-          <button class="tbtn" onclick="doFillHoles()" title="Fill enclosed empty areas inside the mask">Fill holes</button>
-        </div>
-
-        <div class="tool-sep"></div>
-
-        <!-- Grow / Shrink -->
-        <div class="tool-group">
-          <button class="tbtn" onclick="doGrowMask()" title="Expand selection outward">▲ Grow</button>
-          <button class="tbtn" onclick="doShrinkMask()" title="Contract selection inward">▼ Shrink</button>
-          <input type="number" id="growPx" value="2" min="1" max="30" class="px-input" title="Pixels">
-        </div>
-
-        <div class="tool-sep"></div>
-
-        <!-- GK Propagate -->
-        <div class="tool-group">
-          <button class="tbtn" id="tbnAllGK" onclick="propagateToAllGK()" title="Copy this region's mask to all 7 goalkeeper assets">→ All GK</button>
-        </div>
-
-        <div class="tool-sep"></div>
-
-        <!-- Tolerance -->
-        <div class="tool-group">
-          <span class="tol-label">Tol</span>
-          <input type="range" id="meToleranceSlider" min="0" max="100" value="40" class="tol-slider" title="Selection tolerance for Wand and Range tools">
-          <span class="tol-val" id="meTolVal">40</span>
-        </div>
-        <!-- Brush size -->
-        <div class="tool-group">
-          <span class="tol-label">Brush</span>
-          <input type="range" id="meBrushSize" min="1" max="20" value="5" class="tol-slider" title="Brush size in pixels — [ to decrease, ] to increase">
-          <span class="tol-val" id="meBrushVal">5px</span>
-        </div>
-        <!-- Overlay opacity -->
-        <div class="tool-group">
-          <span class="tol-label">Overlay</span>
-          <input type="range" id="meOpacitySlider" min="10" max="100" value="45" class="tol-slider" title="Mask overlay opacity">
-          <span class="tol-val" id="meOpacityVal">45%</span>
-        </div>
-        <!-- Contrast boost -->
-        <div class="tool-group">
-          <button class="tbtn" id="tbnContrast" onclick="toggleContrast()" title="Temporarily boost contrast to see edges — does not affect output">Contrast</button>
-        </div>
-
-        <div style="flex:1;"></div>
-
-        <!-- Clear tools -->
-        <div class="tool-group">
-          <button class="tbtn danger" onclick="meClearFrame()">Clear frame</button>
-          <button class="tbtn danger" onclick="meClearAll()">Clear all</button>
-        </div>
-
-        <span class="toolbar-status" id="editorStatus"></span>
-      </div>
 
       <!-- Content area -->
       <div class="editor-content">
@@ -428,16 +368,111 @@ input[type=color]{width:0;height:0;opacity:0;position:absolute;}
               </div>
             </div>
 
-            <!-- Anim preview -->
-            <div class="anim-sidebar">
-              <div class="anim-label">Preview</div>
-              <div class="anim-canvas-wrap">
-                <canvas id="meAnimCanvas"></canvas>
+            <!-- Tool Panel -->
+            <div class="tool-panel" id="toolPanel">
+
+              <!-- Region -->
+              <div class="tp-section">
+                <div class="tp-label">Region</div>
+                <button class="tp-btn active" onclick="setRegion('shirt')" id="rtabShirt">Shirt <span style="display:flex;align-items:center;gap:4px;"><span class="rtab-dot" id="rdotShirt"></span><span class="rtab-lock" id="rlock_shirt" onclick="toggleRegionLock('shirt',event)" title="Lock">🔒</span></span></button>
+                <button class="tp-btn" onclick="setRegion('socks')" id="rtabSocks">Socks <span style="display:flex;align-items:center;gap:4px;"><span class="rtab-dot" id="rdotSocks"></span><span class="rtab-lock" id="rlock_socks" onclick="toggleRegionLock('socks',event)" title="Lock">🔒</span></span></button>
+                <button class="tp-btn" onclick="setRegion('shorts')" id="rtabShorts">Shorts <span style="display:flex;align-items:center;gap:4px;"><span class="rtab-dot" id="rdotShorts"></span><span class="rtab-lock" id="rlock_shorts" onclick="toggleRegionLock('shorts',event)" title="Lock">🔒</span></span></button>
+                <button class="tp-btn" onclick="setRegion('skin')" id="rtabSkin">Skin <span style="display:flex;align-items:center;gap:4px;"><span class="rtab-dot" id="rdotSkin"></span><span class="rtab-lock" id="rlock_skin" onclick="toggleRegionLock('skin',event)" title="Lock">🔒</span></span></button>
+                <button class="tp-btn" onclick="setRegion('number')" id="rtabNumber" style="display:none;">Number <span style="display:flex;align-items:center;gap:4px;"><span class="rtab-dot" id="rdotNumber"></span><span class="rtab-lock" id="rlock_number" onclick="toggleRegionLock('number',event)" title="Lock">🔒</span></span></button>
               </div>
-              <div class="anim-ctrls">
-                <button class="anim-play-btn" onclick="toggleMeAnim()" id="mePlayBtn">▶</button>
-                <span class="anim-info" id="meAnimInfo">0/0</span>
+
+              <div class="tp-sep"></div>
+
+              <!-- Tools -->
+              <div class="tp-section">
+                <div class="tp-label">Tool</div>
+                <div class="tp-grid2">
+                  <button class="tp-btn tp-tool active" id="tbnWand" onclick="meTool('wand')" title="[W]">Wand</button>
+                  <button class="tp-btn tp-tool" id="tbnRange" onclick="meTool('range')" title="[R]">Range</button>
+                  <button class="tp-btn tp-tool" id="tbnBrush" onclick="meTool('brush')" title="[B]">Brush</button>
+                  <button class="tp-btn tp-tool" id="tbnLasso" onclick="meTool('lasso')" title="[L]">Lasso</button>
+                </div>
+                <button class="tp-btn tp-tool" id="tbnAnchor" onclick="meTool('anchor')" style="display:none;">Place #</button>
               </div>
+
+              <div class="tp-sep"></div>
+
+              <!-- Tolerance -->
+              <div class="tp-section">
+                <div class="tp-row"><span class="tp-label">Tolerance</span><span class="tp-val" id="meTolVal">40</span></div>
+                <input type="range" id="meToleranceSlider" min="0" max="100" value="40" class="tp-slider" title="Wand + Range tolerance">
+              </div>
+
+              <!-- Brush size -->
+              <div class="tp-section">
+                <div class="tp-row"><span class="tp-label">Brush size</span><span class="tp-val" id="meBrushVal">5px</span></div>
+                <input type="range" id="meBrushSize" min="1" max="20" value="5" class="tp-slider" title="[ decrease  ] increase">
+              </div>
+
+              <div class="tp-sep"></div>
+
+              <!-- Modify -->
+              <div class="tp-section">
+                <div class="tp-label">Modify</div>
+                <button class="tp-btn" onclick="doSmooth()" title="[S]">Smooth edges</button>
+                <button class="tp-btn" onclick="doInvert()">Invert</button>
+                <button class="tp-btn" onclick="doFillHoles()">Fill holes</button>
+              </div>
+
+              <!-- Grow / Shrink -->
+              <div class="tp-section">
+                <div class="tp-row">
+                  <span class="tp-label">Grow / Shrink</span>
+                  <input type="number" id="growPx" value="2" min="1" max="30" class="px-input" title="px">
+                </div>
+                <div class="tp-grid2">
+                  <button class="tp-btn tp-tool" onclick="doGrowMask()">▲ Grow</button>
+                  <button class="tp-btn tp-tool" onclick="doShrinkMask()">▼ Shrink</button>
+                </div>
+              </div>
+
+              <!-- GK -->
+              <div class="tp-section">
+                <button class="tp-btn" id="tbnAllGK" onclick="propagateToAllGK()" title="Copy region mask to all 7 GK assets">→ All GK</button>
+              </div>
+
+              <div class="tp-sep"></div>
+
+              <!-- Overlay -->
+              <div class="tp-section">
+                <div class="tp-row"><span class="tp-label">Overlay</span><span class="tp-val" id="meOpacityVal">45%</span></div>
+                <input type="range" id="meOpacitySlider" min="10" max="100" value="45" class="tp-slider" title="Mask overlay opacity">
+              </div>
+
+              <!-- Contrast -->
+              <div class="tp-section">
+                <button class="tp-btn" id="tbnContrast" onclick="toggleContrast()" title="Boost contrast to see edges — visual only">Contrast boost</button>
+              </div>
+
+              <div class="tp-sep"></div>
+
+              <!-- Undo / Redo -->
+              <div class="tp-section">
+                <div class="tp-grid2">
+                  <button class="tp-btn tp-tool" id="tbnUndo" onclick="doUndo()" title="Ctrl+Z" disabled style="opacity:0.4;">↩ Undo</button>
+                  <button class="tp-btn tp-tool" id="tbnRedo" onclick="doRedo()" title="Ctrl+Y" disabled style="opacity:0.4;">↪ Redo</button>
+                </div>
+              </div>
+
+              <div class="tp-sep"></div>
+
+              <!-- Clear -->
+              <div class="tp-section">
+                <button class="tp-btn danger" onclick="meClearFrame()">Clear frame</button>
+                <button class="tp-btn danger" onclick="meClearAll()">Clear all</button>
+              </div>
+
+              <!-- Status -->
+              <div style="flex:1;min-height:10px;"></div>
+              <div style="padding:4px 2px;">
+                <span class="toolbar-status" id="editorStatus" style="max-width:100%;word-break:break-word;white-space:normal;font-size:9px;"></span>
+              </div>
+
             </div>
           </div>
 
@@ -521,6 +556,17 @@ input[type=color]{width:0;height:0;opacity:0;position:absolute;}
       <div class="gen-controls">
         <div class="gen-row">
           <span class="gen-label">Preview</span>
+          <select id="genPreviewAsset" class="form-input" style="max-width:180px;height:28px;font-size:11px;">
+            <option value="player">player.webp</option>
+            <option value="gk_idle">GK idle</option>
+            <option value="gk_left">GK left</option>
+            <option value="gk_right">GK right</option>
+            <option value="gk_center">GK center</option>
+            <option value="gk_left_h">GK left high</option>
+            <option value="gk_right_h">GK right high</option>
+            <option value="gk_center_h">GK center high</option>
+            <option value="ball">ball.webp</option>
+          </select>
           <button class="btn btn-acc btn-sm" onclick="genPreview()">Generate preview</button>
           <button class="btn btn-ghost btn-sm" id="btnToggleBA" onclick="toggleBeforeAfter()" style="display:none;">Show: Before</button>
         </div>
@@ -762,25 +808,22 @@ function propagateToAllGK() {
   if (!me.key) return;
   const def = REGISTRY.find(d=>d.key===me.key);
   if (!def || def.type !== 'goalkeeper') { setSt('editorStatus','Must be on a goalkeeper asset','err'); return; }
-  const gkDefs = REGISTRY.filter(d=>d.type==='goalkeeper' && d.key!==me.key);
-  if (!gkDefs.length) return;
-  if (!confirm(`Copy ${me.region} mask from ${def.file} to all ${gkDefs.length} other goalkeeper assets?\nThis will overwrite their ${me.region} masks.`)) return;
-  const srcMasks = maskLib[me.key]?.[me.region] || [];
-  let count = 0;
-  for (const gkDef of gkDefs) {
+  const srcMask = maskLib[me.key]?.[me.region]?.[me.frameIdx];
+  if (!srcMask) { setSt('editorStatus','No mask on this frame to propagate','err'); return; }
+  const allGkDefs = REGISTRY.filter(d=>d.type==='goalkeeper');
+  if (!confirm(`Broadcast ${me.region} mask (current frame) to ALL frames of all ${allGkDefs.length} goalkeeper assets?\nThis stamps your current frame's mask onto every frame of every GK — you can edit individual frames after.`)) return;
+  let totalFrames = 0;
+  for (const gkDef of allGkDefs) {
     const gkKey = gkDef.key;
     const targetFC = loadedAssets[gkKey]?.frames.length || gkDef.frames;
     if (!maskLib[gkKey]) initMaskLib(gkKey, targetFC);
-    const n = Math.max(targetFC, maskLib[gkKey][me.region]?.length || 0);
-    const newR = new Array(n).fill(null);
-    const copyN = Math.min(srcMasks.length, n);
-    for (let i=0;i<copyN;i++) newR[i] = srcMasks[i] ? new Uint8Array(srcMasks[i]) : null;
-    for (let i=copyN;i<n;i++) newR[i] = maskLib[gkKey][me.region]?.[i] ?? null;
-    maskLib[gkKey][me.region] = newR;
-    count++;
+    for (let i=0; i<targetFC; i++) {
+      maskLib[gkKey][me.region][i] = new Uint8Array(srcMask);
+      totalFrames++;
+    }
   }
   updateRegionDots(); renderAssetGrid();
-  setSt('editorStatus',`${me.region} mask → ${count} GK assets`,'ok');
+  setSt('editorStatus',`${me.region} stamped → ${allGkDefs.length} GK assets (${totalFrames} frames total)`,'ok');
 }
 
 // ═══════════════════════════════════════
@@ -971,9 +1014,12 @@ function initMaskLib(key, frameCount) {
 // ═══════════════════════════════════════
 //  MASK LIBRARY SAVE / LOAD
 // ═══════════════════════════════════════
-function saveMaskLibrary() {
+function saveMaskLibrary(filter='all') {
   const out = {version:2};
   for (const key of Object.keys(maskLib)) {
+    const def = REGISTRY.find(d=>d.key===key);
+    if (filter==='player'    && def && def.type!=='player' && def.type!=='ball') continue;
+    if (filter==='goalkeeper'&& def && def.type!=='goalkeeper') continue;
     const ml = maskLib[key];
     out[key] = {};
     for (const region of ['shirt','socks','number','skin','shorts']) {
@@ -985,11 +1031,12 @@ function saveMaskLibrary() {
     }
     out[key].anchors = ml.anchors||[];
   }
-  dlBlob(new Blob([JSON.stringify(out)], {type:'application/json'}), 'mask_library.json');
-  setSt('maskStatus','Saved mask_library.json','ok');
+  const fname = filter==='player'?'mask_player.json':filter==='goalkeeper'?'mask_goalkeeper.json':'mask_library.json';
+  dlBlob(new Blob([JSON.stringify(out)], {type:'application/json'}), fname);
+  setSt('maskStatus',`Saved ${fname}`,'ok');
 }
 
-async function loadMaskLibraryFile(file) {
+async function loadMaskLibraryFile(file, filter='all') {
   if (!file) return;
   try {
     const data = JSON.parse(await file.text());
@@ -998,6 +1045,8 @@ async function loadMaskLibraryFile(file) {
       const entry = data[key];
       const def = REGISTRY.find(d=>d.key===key);
       if (!def) continue;
+      if (filter==='player'    && def.type!=='player' && def.type!=='ball') continue;
+      if (filter==='goalkeeper'&& def.type!=='goalkeeper') continue;
       const frameCount = entry.shirt?.length || def.frames;
       if (!maskLib[key]) initMaskLib(key, frameCount);
       for (const region of ['shirt','socks','number','skin','shorts']) {
@@ -1011,7 +1060,8 @@ async function loadMaskLibraryFile(file) {
       }
       if (entry.anchors) maskLib[key].anchors = entry.anchors;
     }
-    setSt('maskStatus','Loaded mask library','ok');
+    const label = filter==='player'?'player masks':filter==='goalkeeper'?'GK masks':'mask library';
+    setSt('maskStatus',`Loaded ${label}`,'ok');
     updateChips(); renderAssetGrid();
     if (me.key) drawMeOverlay();
   } catch(e) { setSt('maskStatus','Error: '+e.message,'err'); }
@@ -1102,7 +1152,6 @@ function setRegion(r) {
     if (el) el.classList.toggle('active', rr===r);
   });
   if (r==='number') meTool('anchor');
-  else meTool('lasso');
   drawMeOverlay();
 }
 
@@ -1250,9 +1299,10 @@ function meTool(t) {
   const map = {lasso:'tbnLasso', wand:'tbnWand', range:'tbnRange', anchor:'tbnAnchor', brush:'tbnBrush'};
   for (const [tool, id] of Object.entries(map)) {
     const btn = document.getElementById(id);
-    if (btn) btn.classList.toggle('active', tool===t);
+    if (btn) { btn.classList.toggle('active', tool===t); btn.classList.toggle('tbtn', false); }
   }
-  document.getElementById('meCanvasWrap').style.cursor = t==='brush' ? 'cell' : 'crosshair';
+  const wrap = document.getElementById('meCanvasWrap');
+  if (wrap) wrap.style.cursor = t==='brush' ? 'cell' : 'crosshair';
 }
 
 // ── Brush tool ──
@@ -1620,13 +1670,13 @@ function meFrameCopy(from, to) {
 function startMeAnim() {
   stopMeAnim();
   me.animPlaying=true; me.animIdx=0; me.animLast=performance.now(); me.animAccum=0;
-  document.getElementById('mePlayBtn').textContent='⏸';
+  const pb=document.getElementById('mePlayBtn'); if(pb) pb.textContent='⏸';
   me.animRAF=requestAnimationFrame(meAnimLoop);
 }
 function stopMeAnim() {
   me.animPlaying=false;
   if(me.animRAF){cancelAnimationFrame(me.animRAF);me.animRAF=null;}
-  document.getElementById('mePlayBtn').textContent='▶';
+  const pb=document.getElementById('mePlayBtn'); if(pb) pb.textContent='▶';
 }
 function toggleMeAnim() { me.animPlaying?stopMeAnim():startMeAnim(); }
 
@@ -1646,6 +1696,7 @@ function drawMeAnimFrame() {
   if(!frames.length) return;
   const f=frames[me.animIdx];
   const ac=document.getElementById('meAnimCanvas');
+  if(!ac) { document.getElementById('meAnimInfo') && (document.getElementById('meAnimInfo').textContent=`${me.animIdx+1}/${frames.length}`); return; }
   const scale=Math.min(148/f.width,110/f.height);
   ac.width=Math.round(f.width*scale); ac.height=Math.round(f.height*scale);
   const ctx=ac.getContext('2d'); ctx.clearRect(0,0,ac.width,ac.height);
@@ -1660,7 +1711,7 @@ function drawMeAnimFrame() {
     tc.putImageData(id,0,0);
     ctx.drawImage(tmp,0,0,ac.width,ac.height);
   }
-  document.getElementById('meAnimInfo').textContent=`${me.animIdx+1}/${frames.length}`;
+  const info=document.getElementById('meAnimInfo'); if(info) info.textContent=`${me.animIdx+1}/${frames.length}`;
 }
 
 // ═══════════════════════════════════════
@@ -1684,8 +1735,8 @@ function addPreset() {
 function makeDefaultPreset(id, name) {
   return {
     id, name,
-    player:    {shirtColor:'#E30613',sockColor:'#E30613',shortsColor:'#111111',skinColor:'#c68642',pattern:'solid',patternColor:'#FFFFFF',patternWidth:12,stripeAngle:0,number:'7',numberColor:'#FFFFFF'},
-    goalkeeper:{shirtColor:'#111111',sockColor:'#FFFFFF',shortsColor:'#111111',skinColor:'#c68642',pattern:'solid',patternColor:'#FFFFFF',patternWidth:12,stripeAngle:0},
+    player:    {shirtColor:'#E30613',sockColor:'#E30613',shortsColor:'#111111',skinColor:'#c68642',pattern:'solid',patternColor:'#FFFFFF',patternWidth:12,stripeAngle:0,number:'7',numberColor:'#FFFFFF',shirtOpacity:100,sockOpacity:100,shortsOpacity:100,skinOpacity:60},
+    goalkeeper:{shirtColor:'#111111',sockColor:'#FFFFFF',shortsColor:'#111111',skinColor:'#c68642',pattern:'solid',patternColor:'#FFFFFF',patternWidth:12,stripeAngle:0,shirtOpacity:100,sockOpacity:100,shortsOpacity:100,skinOpacity:50},
   };
 }
 
@@ -1728,9 +1779,13 @@ function renderPresetForm(p) {
     <div class="form-section">
       <div class="form-section-title">Player Kit</div>
       ${colorRow('fpShirt','Shirt Color',p.player.shirtColor)}
+      ${opacityRow('fpShirtOp','Shirt',p.player.shirtOpacity??100)}
       ${colorRow('fpSock','Sock Color',p.player.sockColor)}
+      ${opacityRow('fpSockOp','Socks',p.player.sockOpacity??100)}
       ${colorRow('fpShorts','Shorts Color',p.player.shortsColor||'#111111')}
+      ${opacityRow('fpShortsOp','Shorts',p.player.shortsOpacity??100)}
       ${colorRow('fpSkin','Skin Tone',p.player.skinColor||'#c68642')}
+      ${opacityRow('fpSkinOp','Skin blend',p.player.skinOpacity??60)}
       ${patternRow('fpPattern','Pattern',p.player.pattern)}
       ${colorRow('fpPatCol','Pattern Color',p.player.patternColor)}
       <div class="form-row"><span class="form-label">Pattern Width</span>
@@ -1750,9 +1805,13 @@ function renderPresetForm(p) {
     <div class="form-section">
       <div class="form-section-title">Goalkeeper Kit</div>
       ${colorRow('fgShirt','Shirt Color',p.goalkeeper.shirtColor)}
+      ${opacityRow('fgShirtOp','Shirt',p.goalkeeper.shirtOpacity??100)}
       ${colorRow('fgSock','Sock Color',p.goalkeeper.sockColor)}
+      ${opacityRow('fgSockOp','Socks',p.goalkeeper.sockOpacity??100)}
       ${colorRow('fgShorts','Shorts Color',p.goalkeeper.shortsColor||'#111111')}
+      ${opacityRow('fgShortsOp','Shorts',p.goalkeeper.shortsOpacity??100)}
       ${colorRow('fgSkin','Skin Tone',p.goalkeeper.skinColor||'#c68642')}
+      ${opacityRow('fgSkinOp','Skin blend',p.goalkeeper.skinOpacity??50)}
       ${patternRow('fgPattern','Pattern',p.goalkeeper.pattern)}
       ${colorRow('fgPatCol','Pattern Color',p.goalkeeper.patternColor)}
       <div class="form-row"><span class="form-label">Stripe Angle</span>
@@ -1763,7 +1822,18 @@ function renderPresetForm(p) {
   document.getElementById('fpPatW').addEventListener('input', e=>{ document.getElementById('fpPatWVal').textContent=e.target.value+'px'; });
   document.getElementById('fpStripeAngle').addEventListener('input', e=>{ document.getElementById('fpStripeAngleVal').textContent=e.target.value+'°'; });
   document.getElementById('fgStripeAngle').addEventListener('input', e=>{ document.getElementById('fgStripeAngleVal').textContent=e.target.value+'°'; });
+  ['fpShirtOp','fpSockOp','fpShortsOp','fpSkinOp','fgShirtOp','fgSockOp','fgShortsOp','fgSkinOp'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.addEventListener('input',()=>{ const v=document.getElementById(id+'Val'); if(v) v.textContent=el.value+'%'; });
+  });
   wireColorInputs();
+}
+
+function opacityRow(id, label, val) {
+  const v = val??100;
+  return `<div class="form-row" style="margin-bottom:4px;"><span class="form-label" style="font-size:10px;color:var(--tx3);">${label} strength</span>
+    <div class="range-row"><input type="range" id="${id}" min="0" max="100" value="${v}">
+    <span class="range-val" id="${id}Val">${v}%</span></div></div>`;
 }
 
 function colorRow(id, label, val) {
@@ -1818,6 +1888,10 @@ function saveCurrentPreset() {
   p.player.stripeAngle=parseInt(val('fpStripeAngle'))||0;
   p.player.number=val('fpNum');
   p.player.numberColor=val('hx_fpNumCol');
+  p.player.shirtOpacity=parseInt(val('fpShirtOp'))??100;
+  p.player.sockOpacity=parseInt(val('fpSockOp'))??100;
+  p.player.shortsOpacity=parseInt(val('fpShortsOp'))??100;
+  p.player.skinOpacity=parseInt(val('fpSkinOp'))??60;
   p.goalkeeper.shirtColor=val('hx_fgShirt');
   p.goalkeeper.sockColor=val('hx_fgSock');
   p.goalkeeper.shortsColor=val('hx_fgShorts');
@@ -1825,6 +1899,10 @@ function saveCurrentPreset() {
   p.goalkeeper.pattern=val('fgPattern');
   p.goalkeeper.patternColor=val('hx_fgPatCol');
   p.goalkeeper.stripeAngle=parseInt(val('fgStripeAngle'))||0;
+  p.goalkeeper.shirtOpacity=parseInt(val('fgShirtOp'))??100;
+  p.goalkeeper.sockOpacity=parseInt(val('fgSockOp'))??100;
+  p.goalkeeper.shortsOpacity=parseInt(val('fgShortsOp'))??100;
+  p.goalkeeper.skinOpacity=parseInt(val('fgSkinOp'))??50;
   currentPresetId=p.id;
   savePresetsToStorage();
   const st=document.getElementById('presetStatus');
@@ -1926,7 +2004,8 @@ function getMaskBounds(mask, w, h) {
 }
 
 function applyColorToMask(outData, srcData, mask, settings, w, h) {
-  const {shirtColor, patternColor, pattern, patternWidth, stripeAngle} = settings;
+  const {shirtColor, patternColor, pattern, patternWidth, stripeAngle, opacity=100} = settings;
+  const alpha = Math.max(0, Math.min(1, opacity / 100));
   const [r1,g1,b1] = hexToRgb(shirtColor);
   const [r2,g2,b2] = patternColor?hexToRgb(patternColor):[r1,g1,b1];
 
@@ -1957,9 +2036,12 @@ function applyColorToMask(outData, srcData, mask, settings, w, h) {
     } else if(pattern==='half_half'&&bounds){ if(y>=(bounds.minY+bounds.maxY)/2){pr=r2;pg=g2;pb=b2;} }
     const origLum=(srcData[di]*0.299+srcData[di+1]*0.587+srcData[di+2]*0.114);
     const scale=Math.min(origLum/Math.max(baseLum,1)*1.1, 2.2);
-    outData[di]  =Math.min(255,Math.round(pr*scale));
-    outData[di+1]=Math.min(255,Math.round(pg*scale));
-    outData[di+2]=Math.min(255,Math.round(pb*scale));
+    const nr=Math.min(255,Math.round(pr*scale));
+    const ng=Math.min(255,Math.round(pg*scale));
+    const nb=Math.min(255,Math.round(pb*scale));
+    outData[di]  =Math.round(srcData[di]  *(1-alpha)+nr*alpha);
+    outData[di+1]=Math.round(srcData[di+1]*(1-alpha)+ng*alpha);
+    outData[di+2]=Math.round(srcData[di+2]*(1-alpha)+nb*alpha);
   }
 }
 
@@ -2000,13 +2082,13 @@ function processFrameForCasino(frameCanvas, frameIdx, assetKey, preset, assetTyp
   const isPlayer=assetType==='player';
   const kit=isPlayer?preset.player:preset.goalkeeper;
   const shirtMask=maskLib[assetKey]?.shirt?.[frameIdx];
-  if(shirtMask) applyColorToMask(od, srcData, shirtMask, {shirtColor:kit.shirtColor,patternColor:kit.patternColor,pattern:kit.pattern,patternWidth:kit.patternWidth,stripeAngle:kit.stripeAngle||0}, w, h);
+  if(shirtMask) applyColorToMask(od, srcData, shirtMask, {shirtColor:kit.shirtColor,patternColor:kit.patternColor,pattern:kit.pattern,patternWidth:kit.patternWidth,stripeAngle:kit.stripeAngle||0,opacity:kit.shirtOpacity??100}, w, h);
   const sockMask=maskLib[assetKey]?.socks?.[frameIdx];
-  if(sockMask) applyColorToMask(od, srcData, sockMask, {shirtColor:kit.sockColor,patternColor:null,pattern:'solid',patternWidth:0,stripeAngle:0}, w, h);
+  if(sockMask) applyColorToMask(od, srcData, sockMask, {shirtColor:kit.sockColor,patternColor:null,pattern:'solid',patternWidth:0,stripeAngle:0,opacity:kit.sockOpacity??100}, w, h);
   const shortsMask=maskLib[assetKey]?.shorts?.[frameIdx];
-  if(shortsMask) applyColorToMask(od, srcData, shortsMask, {shirtColor:kit.shortsColor||'#111111',patternColor:null,pattern:'solid',patternWidth:0,stripeAngle:0}, w, h);
+  if(shortsMask) applyColorToMask(od, srcData, shortsMask, {shirtColor:kit.shortsColor||'#111111',patternColor:null,pattern:'solid',patternWidth:0,stripeAngle:0,opacity:kit.shortsOpacity??100}, w, h);
   const skinMask=maskLib[assetKey]?.skin?.[frameIdx];
-  if(skinMask) applyColorToMask(od, srcData, skinMask, {shirtColor:kit.skinColor||'#c68642',patternColor:null,pattern:'solid',patternWidth:0,stripeAngle:0}, w, h);
+  if(skinMask) applyColorToMask(od, srcData, skinMask, {shirtColor:kit.skinColor||'#c68642',patternColor:null,pattern:'solid',patternWidth:0,stripeAngle:0,opacity:kit.skinOpacity??60}, w, h);
   outCtx.putImageData(id,0,0);
   let result=out;
   if(isPlayer&&preset.player.number){
@@ -2072,27 +2154,30 @@ async function genPreview() {
   if(!ids.length){setSt('exportStatus','Select at least one casino','err');return;}
   const preset=presets.find(p=>p.id===ids[0]);
   if(!preset) return;
-  if(!loadedAssets.player){setSt('exportStatus','player.webp not loaded','err');return;}
+  const assetKey=(document.getElementById('genPreviewAsset')?.value)||'player';
+  const def=REGISTRY.find(d=>d.key===assetKey);
+  if(!loadedAssets[assetKey]){setSt('exportStatus',`${def?.file||assetKey} not loaded — load assets folder first`,'err');return;}
   setSt('exportStatus','Generating preview…');
-  const {frames,durations}=loadedAssets.player;
+  const {frames,durations}=loadedAssets[assetKey];
   genBeforeFrames=frames;
   genAfterFrames=[];
   for(let i=0;i<frames.length;i++){
-    genAfterFrames.push(processFrameForCasino(frames[i],i,'player',preset,'player'));
+    genAfterFrames.push(processFrameForCasino(frames[i],i,assetKey,preset,def.type));
     await yld();
   }
   genShowAfter=true;
   document.getElementById('btnToggleBA').style.display='';
   document.getElementById('btnToggleBA').textContent='Show: After';
   startGenPreviewAnim(genAfterFrames, durations);
-  setSt('exportStatus',`Preview: ${preset.name}`,'ok');
+  setSt('exportStatus',`Preview: ${preset.name} — ${def?.file||assetKey}`,'ok');
 }
 
 function toggleBeforeAfter() {
   genShowAfter=!genShowAfter;
   document.getElementById('btnToggleBA').textContent='Show: '+(genShowAfter?'After':'Before');
+  const assetKey=(document.getElementById('genPreviewAsset')?.value)||'player';
   const f=genShowAfter?genAfterFrames:genBeforeFrames;
-  if(f&&loadedAssets.player) startGenPreviewAnim(f, loadedAssets.player.durations);
+  if(f&&loadedAssets[assetKey]) startGenPreviewAnim(f, loadedAssets[assetKey].durations);
 }
 
 function startGenPreviewAnim(frames, durs) {
@@ -2172,7 +2257,15 @@ async function startExport() {
       dlBlob(await masterZip.generateAsync({type:'blob',onUpdate:m=>setProgress(0.9+m.percent/1000)}),'all_football_shootout_assets.zip');
     }
     setProgress(1);
-    setSt('exportStatus',`Done — ${casinoIds.length} casino(s) exported`,'ok');
+    const funnyWins=[
+      `🎉 BOOM! ${casinoIds.length} casino(s) looking absolutely fire — the players are dressed and ready to score!`,
+      `💅 Flawless. ${casinoIds.length} skin(s) exported. Your designer deserves a raise. Maybe two.`,
+      `🚀 ${casinoIds.length} casino kit(s) shipped! The goalkeeper saw the final result and refused to let any goals in.`,
+      `🏆 ${casinoIds.length} casino(s) exported and runway-ready. Even the ball is glowing.`,
+      `🦖 RAWR of pure joy! ${casinoIds.length} casino skin(s) exported. The T-Rex is so proud it grew tiny little happy arms.`,
+      `✨ ${casinoIds.length} kit(s) done. Somewhere, a footballer is putting on a freshly coloured shirt and feeling like a legend.`,
+    ];
+    setSt('exportStatus', funnyWins[Math.floor(Math.random()*funnyWins.length)], 'ok');
   } catch(e){
     setSt('exportStatus','Export error: '+e.message,'err');
     log('Fatal: '+e.message,'err');
