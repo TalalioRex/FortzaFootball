@@ -655,12 +655,13 @@ let me = {
   zoom: 1, panX: 0, panY: 0,
   panning: false, panStartX: 0, panStartY: 0,
   lassoPts: [], lassoing: false, lassoExclude: false,
-  brushing: false, brushHistPushed: false,
+  brushing: false, brushHistPushed: false, brushExclude: false,
   animPlaying: false, animIdx: 0, animRAF: null, animLast: 0, animAccum: 0,
 };
 
 let genBeforeFrames = null;
 let genAfterFrames = null;
+let genPreviewDurations = null;
 let genShowAfter = false;
 let genAnimRAF = null;
 let genAnimIdx = 0;
@@ -1018,8 +1019,9 @@ function saveMaskLibrary(filter='all') {
   const out = {version:2};
   for (const key of Object.keys(maskLib)) {
     const def = REGISTRY.find(d=>d.key===key);
-    if (filter==='player'    && def && def.type!=='player' && def.type!=='ball') continue;
-    if (filter==='goalkeeper'&& def && def.type!=='goalkeeper') continue;
+    if (!def) continue;
+    if (filter==='player'    && def.type!=='player' && def.type!=='ball') continue;
+    if (filter==='goalkeeper'&& def.type!=='goalkeeper') continue;
     const ml = maskLib[key];
     out[key] = {};
     for (const region of ['shirt','socks','number','skin','shorts']) {
@@ -1152,6 +1154,7 @@ function setRegion(r) {
     if (el) el.classList.toggle('active', rr===r);
   });
   if (r==='number') meTool('anchor');
+  else if (me.tool==='anchor') meTool('wand');
   drawMeOverlay();
 }
 
@@ -1299,7 +1302,7 @@ function meTool(t) {
   const map = {lasso:'tbnLasso', wand:'tbnWand', range:'tbnRange', anchor:'tbnAnchor', brush:'tbnBrush'};
   for (const [tool, id] of Object.entries(map)) {
     const btn = document.getElementById(id);
-    if (btn) { btn.classList.toggle('active', tool===t); btn.classList.toggle('tbtn', false); }
+    if (btn) btn.classList.toggle('active', tool===t);
   }
   const wrap = document.getElementById('meCanvasWrap');
   if (wrap) wrap.style.cursor = t==='brush' ? 'cell' : 'crosshair';
@@ -1669,6 +1672,7 @@ function meFrameCopy(from, to) {
 // ═══════════════════════════════════════
 function startMeAnim() {
   stopMeAnim();
+  if(!document.getElementById('meAnimCanvas')) return;
   me.animPlaying=true; me.animIdx=0; me.animLast=performance.now(); me.animAccum=0;
   const pb=document.getElementById('mePlayBtn'); if(pb) pb.textContent='⏸';
   me.animRAF=requestAnimationFrame(meAnimLoop);
@@ -1888,10 +1892,10 @@ function saveCurrentPreset() {
   p.player.stripeAngle=parseInt(val('fpStripeAngle'))||0;
   p.player.number=val('fpNum');
   p.player.numberColor=val('hx_fpNumCol');
-  p.player.shirtOpacity=parseInt(val('fpShirtOp'))??100;
-  p.player.sockOpacity=parseInt(val('fpSockOp'))??100;
-  p.player.shortsOpacity=parseInt(val('fpShortsOp'))??100;
-  p.player.skinOpacity=parseInt(val('fpSkinOp'))??60;
+  p.player.shirtOpacity=parseInt(val('fpShirtOp'))||100;
+  p.player.sockOpacity=parseInt(val('fpSockOp'))||100;
+  p.player.shortsOpacity=parseInt(val('fpShortsOp'))||100;
+  p.player.skinOpacity=parseInt(val('fpSkinOp'))||60;
   p.goalkeeper.shirtColor=val('hx_fgShirt');
   p.goalkeeper.sockColor=val('hx_fgSock');
   p.goalkeeper.shortsColor=val('hx_fgShorts');
@@ -1899,10 +1903,10 @@ function saveCurrentPreset() {
   p.goalkeeper.pattern=val('fgPattern');
   p.goalkeeper.patternColor=val('hx_fgPatCol');
   p.goalkeeper.stripeAngle=parseInt(val('fgStripeAngle'))||0;
-  p.goalkeeper.shirtOpacity=parseInt(val('fgShirtOp'))??100;
-  p.goalkeeper.sockOpacity=parseInt(val('fgSockOp'))??100;
-  p.goalkeeper.shortsOpacity=parseInt(val('fgShortsOp'))??100;
-  p.goalkeeper.skinOpacity=parseInt(val('fgSkinOp'))??50;
+  p.goalkeeper.shirtOpacity=parseInt(val('fgShirtOp'))||100;
+  p.goalkeeper.sockOpacity=parseInt(val('fgSockOp'))||100;
+  p.goalkeeper.shortsOpacity=parseInt(val('fgShortsOp'))||100;
+  p.goalkeeper.skinOpacity=parseInt(val('fgSkinOp'))||50;
   currentPresetId=p.id;
   savePresetsToStorage();
   const st=document.getElementById('presetStatus');
@@ -2080,15 +2084,18 @@ function processFrameForCasino(frameCanvas, frameIdx, assetKey, preset, assetTyp
   const srcData=frameCanvas.getContext('2d').getImageData(0,0,w,h).data;
   const id=outCtx.getImageData(0,0,w,h); const od=id.data; od.set(srcData);
   const isPlayer=assetType==='player';
+  const isBall=assetType==='ball';
   const kit=isPlayer?preset.player:preset.goalkeeper;
-  const shirtMask=maskLib[assetKey]?.shirt?.[frameIdx];
-  if(shirtMask) applyColorToMask(od, srcData, shirtMask, {shirtColor:kit.shirtColor,patternColor:kit.patternColor,pattern:kit.pattern,patternWidth:kit.patternWidth,stripeAngle:kit.stripeAngle||0,opacity:kit.shirtOpacity??100}, w, h);
-  const sockMask=maskLib[assetKey]?.socks?.[frameIdx];
-  if(sockMask) applyColorToMask(od, srcData, sockMask, {shirtColor:kit.sockColor,patternColor:null,pattern:'solid',patternWidth:0,stripeAngle:0,opacity:kit.sockOpacity??100}, w, h);
-  const shortsMask=maskLib[assetKey]?.shorts?.[frameIdx];
-  if(shortsMask) applyColorToMask(od, srcData, shortsMask, {shirtColor:kit.shortsColor||'#111111',patternColor:null,pattern:'solid',patternWidth:0,stripeAngle:0,opacity:kit.shortsOpacity??100}, w, h);
-  const skinMask=maskLib[assetKey]?.skin?.[frameIdx];
-  if(skinMask) applyColorToMask(od, srcData, skinMask, {shirtColor:kit.skinColor||'#c68642',patternColor:null,pattern:'solid',patternWidth:0,stripeAngle:0,opacity:kit.skinOpacity??60}, w, h);
+  if(!isBall){
+    const shirtMask=maskLib[assetKey]?.shirt?.[frameIdx];
+    if(shirtMask) applyColorToMask(od, srcData, shirtMask, {shirtColor:kit.shirtColor,patternColor:kit.patternColor,pattern:kit.pattern,patternWidth:kit.patternWidth,stripeAngle:kit.stripeAngle||0,opacity:kit.shirtOpacity||100}, w, h);
+    const sockMask=maskLib[assetKey]?.socks?.[frameIdx];
+    if(sockMask) applyColorToMask(od, srcData, sockMask, {shirtColor:kit.sockColor,patternColor:null,pattern:'solid',patternWidth:0,stripeAngle:0,opacity:kit.sockOpacity||100}, w, h);
+    const shortsMask=maskLib[assetKey]?.shorts?.[frameIdx];
+    if(shortsMask) applyColorToMask(od, srcData, shortsMask, {shirtColor:kit.shortsColor||'#111111',patternColor:null,pattern:'solid',patternWidth:0,stripeAngle:0,opacity:kit.shortsOpacity||100}, w, h);
+    const skinMask=maskLib[assetKey]?.skin?.[frameIdx];
+    if(skinMask) applyColorToMask(od, srcData, skinMask, {shirtColor:kit.skinColor||'#c68642',patternColor:null,pattern:'solid',patternWidth:0,stripeAngle:0,opacity:kit.skinOpacity||60}, w, h);
+  }
   outCtx.putImageData(id,0,0);
   let result=out;
   if(isPlayer&&preset.player.number){
@@ -2108,11 +2115,12 @@ function renderGenStatus() {
   const bar=document.getElementById('genStatusBar');
   if(!bar) return;
   const al=Object.keys(loadedAssets).length;
+  const total=REGISTRY.length;
   const mr=REGISTRY.filter(d=>{const c=getMaskCoverage(d.key);return c.shirt>0||c.socks>0;}).length;
   const sp=SWAP_SLOTS.filter(s=>assetSwaps[s]).length;
   bar.innerHTML='';
-  addStatusCard(bar, al>0, `Assets ${al}/9`, al===9?'All loaded':`${9-al} missing`);
-  addStatusCard(bar, mr>0, `Masks ${mr}/9`, mr===9?'All masked':'Load or draw masks');
+  addStatusCard(bar, al>0, `Assets ${al}/${total}`, al===total?'All loaded':`${total-al} missing`);
+  addStatusCard(bar, mr>0, `Masks ${mr}/${total}`, mr===total?'All masked':'Load or draw masks');
   addStatusCard(bar, presets.length>0, `Presets ${presets.length}`, presets.length?'Ready':'Add casino presets');
   addStatusCard(bar, sp===10, `PNGs ${sp}/10`, sp===10?'All ready':`${10-sp} missing — required for export`);
 }
@@ -2160,6 +2168,7 @@ async function genPreview() {
   setSt('exportStatus','Generating preview…');
   const {frames,durations}=loadedAssets[assetKey];
   genBeforeFrames=frames;
+  genPreviewDurations=durations;
   genAfterFrames=[];
   for(let i=0;i<frames.length;i++){
     genAfterFrames.push(processFrameForCasino(frames[i],i,assetKey,preset,def.type));
@@ -2175,9 +2184,8 @@ async function genPreview() {
 function toggleBeforeAfter() {
   genShowAfter=!genShowAfter;
   document.getElementById('btnToggleBA').textContent='Show: '+(genShowAfter?'After':'Before');
-  const assetKey=(document.getElementById('genPreviewAsset')?.value)||'player';
   const f=genShowAfter?genAfterFrames:genBeforeFrames;
-  if(f&&loadedAssets[assetKey]) startGenPreviewAnim(f, loadedAssets[assetKey].durations);
+  if(f&&genPreviewDurations) startGenPreviewAnim(f, genPreviewDurations);
 }
 
 function startGenPreviewAnim(frames, durs) {
@@ -2314,12 +2322,13 @@ function yld() { return new Promise(r=>setTimeout(r,0)); }
 
 function updateChips() {
   const al=Object.keys(loadedAssets).length;
+  const rtotal=REGISTRY.length;
   const ec=document.getElementById('chipAssets');
-  if(ec){ec.textContent=`Assets ${al}/9`;ec.className='nav-chip'+(al===9?' ok':al>0?' warn':'');}
+  if(ec){ec.textContent=`Assets ${al}/${rtotal}`;ec.className='nav-chip'+(al===rtotal?' ok':al>0?' warn':'');}
 
   const mr=REGISTRY.filter(d=>{const c=getMaskCoverage(d.key);return c.shirt>0;}).length;
   const em=document.getElementById('chipMasks');
-  if(em){em.textContent=`Masks ${mr}/9`;em.className='nav-chip'+(mr===9?' ok':mr>0?' warn':'');}
+  if(em){em.textContent=`Masks ${mr}/${rtotal}`;em.className='nav-chip'+(mr===rtotal?' ok':mr>0?' warn':'');}
 
   const ep=document.getElementById('chipPresets');
   if(ep){ep.textContent=`Presets ${presets.length}`;ep.className='nav-chip'+(presets.length>0?' ok':'');}
