@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Football Skin Generator — Interactive Walkthrough</title>
+<style>
+:root {
+  --purple: #4b1797; --purple-light: #6d28d9; --accent: #a855f7;
+  --gold: #f59e0b; --green: #10b981; --blue: #3b82f6; --red: #ef4444;
+  --bg: #0f0f1a; --panel: #161624; --panel2: #1e1e30;
+  --border: rgba(255,255,255,0.08); --text: #f1f5f9; --muted: #94a3b8;
+  --shirt: #22c55e; --socks: #3b82f6; --shorts: #a855f7; --skin: #f97316; --num: #f59e0b;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);}
+
+/* LAYOUT */
+#app{display:grid;grid-template-columns:56px 260px 1fr;grid-template-rows:48px 1fr;height:100vh;}
+#topbar{grid-column:1/-1;background:#0a0a14;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:16px;z-index:10;}
+#topbar .app-title{font-size:14px;font-weight:700;color:var(--text);}
+#topbar .app-sub{font-size:12px;color:var(--muted);}
+#nav-rail{background:#0d0d1a;border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:4px;}
+.rail-btn{width:40px;height:40px;border-radius:10px;border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;transition:all .2s;position:relative;}
+.rail-btn.active{background:rgba(107,40,230,.25);color:var(--accent);}
+.rail-btn:hover{background:rgba(255,255,255,.05);}
+.rail-btn .rail-label{position:absolute;left:52px;background:#1a1a2e;border:1px solid var(--border);padding:4px 10px;border-radius:6px;font-size:11px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s;}
+.rail-btn:hover .rail-label{opacity:1;}
+#left-panel{background:var(--panel);border-right:1px solid var(--border);overflow:hidden;display:flex;flex-direction:column;}
+#main-area{background:var(--bg);overflow:hidden;position:relative;}
+
+/* ASSET LIST */
+.panel-header{padding:14px 16px 10px;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);}
+.asset-list{overflow-y:auto;flex:1;}
+.asset-item{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;transition:background .15s;border-bottom:1px solid rgba(255,255,255,.03);}
+.asset-item:hover{background:rgba(255,255,255,.04);}
+.asset-item.active{background:rgba(107,40,230,.15);border-left:2px solid var(--accent);}
+.asset-thumb{width:44px;height:36px;background:#1a1a2e;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.asset-name{font-size:13px;font-weight:600;flex:1;}
+.asset-dots{display:flex;gap:3px;}
+.adot{width:8px;height:8px;border-radius:50%;}
+
+/* CANVAS AREA */
+#canvas-wrap{position:relative;display:flex;align-items:center;justify-content:center;height:100%;background:radial-gradient(ellipse at center,#1a1a2e 0%,var(--bg) 70%);}
+#fake-canvas{width:200px;height:280px;background:#1a1a2e;border-radius:12px;position:relative;overflow:hidden;border:2px solid var(--border);}
+.canvas-player{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;}
+.player-svg{width:120px;height:200px;position:relative;}
+
+/* MASK OVERLAY on canvas */
+.mask-layer{position:absolute;inset:0;border-radius:10px;pointer-events:none;opacity:0;transition:opacity .4s;}
+.mask-layer.visible{opacity:.55;}
+
+/* TOOL PANEL */
+#tool-panel{position:absolute;right:0;top:0;bottom:0;width:200px;background:var(--panel);border-left:1px solid var(--border);display:flex;flex-direction:column;padding:14px 12px;gap:10px;overflow-y:auto;}
+.tool-section-label{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;}
+.region-tabs{display:flex;flex-wrap:wrap;gap:6px;}
+.reg-tab{padding:5px 10px;border-radius:6px;font-size:12px;font-weight:600;border:1px solid var(--border);cursor:pointer;transition:all .15s;}
+.reg-tab.active{color:#fff;}
+.tool-row{display:flex;gap:6px;}
+.tool-btn{flex:1;padding:7px 4px;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:8px;font-size:11px;font-weight:600;color:var(--muted);cursor:pointer;text-align:center;transition:all .15s;}
+.tool-btn.active{background:rgba(107,40,230,.2);border-color:var(--accent);color:var(--accent);}
+.morph-row{display:flex;flex-direction:column;gap:6px;}
+.morph-btn{padding:6px 10px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:7px;font-size:11px;color:var(--muted);cursor:pointer;transition:all .15s;text-align:left;}
+.morph-btn:hover{background:rgba(255,255,255,.08);color:var(--text);}
+.morph-btn.flash{background:rgba(168,85,247,.25);border-color:var(--accent);color:var(--accent);}
+.big-btn{padding:9px 12px;background:linear-gradient(135deg,var(--purple),var(--accent));border:none;border-radius:8px;font-size:12px;font-weight:700;color:#fff;cursor:pointer;text-align:center;transition:opacity .2s;}
+.big-btn:hover{opacity:.85;}
+
+/* FRAME STRIP */
+#frame-strip{position:absolute;bottom:0;left:0;right:200px;height:64px;background:rgba(10,10,20,.9);border-top:1px solid var(--border);display:flex;align-items:center;padding:0 12px;gap:8px;overflow-x:auto;}
+.frame-thumb{width:48px;height:48px;background:#1a1a2e;border-radius:6px;border:2px solid transparent;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--muted);cursor:pointer;transition:all .2s;}
+.frame-thumb.active{border-color:var(--accent);}
+
+/* PRESETS TAB */
+#preset-panel{display:none;grid-column:2/-1;grid-row:2;overflow:hidden;}
+#preset-list{width:260px;background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;}
+.preset-item{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;transition:background .15s;border-bottom:1px solid rgba(255,255,255,.03);}
+.preset-item:hover{background:rgba(255,255,255,.04);}
+.preset-item.active{background:rgba(107,40,230,.15);}
+.preset-dot{width:24px;height:24px;border-radius:50%;flex-shrink:0;border:2px solid rgba(255,255,255,.15);}
+.preset-name{font-size:13px;font-weight:600;}
+.preset-id{font-size:11px;color:var(--muted);}
+#preset-form{flex:1;overflow-y:auto;padding:24px 28px;}
+.form-section{margin-bottom:28px;}
+.form-section-title{font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+.form-row{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
+.form-label{font-size:13px;color:var(--muted);width:90px;flex-shrink:0;}
+.colour-swatch{width:32px;height:32px;border-radius:7px;border:2px solid rgba(255,255,255,.2);flex-shrink:0;cursor:pointer;}
+.form-input{flex:1;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:7px;padding:7px 12px;font-size:13px;color:var(--text);outline:none;}
+.pattern-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.pattern-btn{padding:8px 6px;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:8px;font-size:11px;font-weight:600;color:var(--muted);cursor:pointer;text-align:center;transition:all .15s;}
+.pattern-btn.active{background:rgba(107,40,230,.2);border-color:var(--accent);color:var(--accent);}
+.opacity-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.opacity-label{font-size:12px;color:var(--muted);width:70px;}
+.opacity-bar-wrap{flex:1;height:6px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;}
+.opacity-bar{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--purple),var(--accent));transition:width .3s;}
+.opacity-val{font-size:12px;color:var(--text);width:32px;text-align:right;}
+
+/* EXPORT TAB */
+#export-panel{display:none;grid-column:2/-1;grid-row:2;overflow:hidden;}
+#export-left{width:260px;background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;}
+#export-main{flex:1;overflow-y:auto;padding:20px 28px;}
+.status-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:28px;}
+.status-card{padding:14px;border-radius:12px;border:1px solid;text-align:center;}
+.status-card.green{background:rgba(16,185,129,.1);border-color:#10b981;color:#6ee7b7;}
+.status-card.amber{background:rgba(245,158,11,.1);border-color:#f59e0b;color:#fcd34d;}
+.status-card.grey{background:rgba(148,163,184,.06);border-color:#475569;color:#94a3b8;}
+.status-card .sc-label{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;}
+.status-card .sc-val{font-size:22px;font-weight:900;}
+.png-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:12px;}
+.png-slot{display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;font-size:12px;cursor:pointer;transition:all .15s;}
+.png-slot:hover{background:rgba(255,255,255,.07);}
+.png-slot.filled{border-color:rgba(16,185,129,.4);}
+.png-dot{width:8px;height:8px;border-radius:50%;background:#475569;flex-shrink:0;transition:background .3s;}
+.png-slot.filled .png-dot{background:#10b981;}
+.export-btn{width:100%;padding:14px;background:linear-gradient(135deg,var(--purple),var(--accent));border:none;border-radius:10px;font-size:16px;font-weight:700;color:#fff;cursor:pointer;margin-top:20px;transition:opacity .2s;}
+.export-btn:hover{opacity:.85;}
+.export-btn:disabled{opacity:.4;cursor:not-allowed;}
+.progress-wrap{margin-top:16px;display:none;}
+.prog-bar-bg{height:8px;background:rgba(255,255,255,.08);border-radius:4px;overflow:hidden;margin-bottom:10px;}
+.prog-bar-fill{height:100%;background:linear-gradient(90deg,var(--purple),var(--accent));width:0%;border-radius:4px;transition:width .4s ease;}
+.log-area{background:rgba(0,0,0,.3);border-radius:8px;padding:12px;font-size:12px;font-family:monospace;height:120px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;}
+.log-line{display:flex;gap:8px;align-items:center;}
+.log-line .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.log-line.ok .dot{background:#10b981;}
+.log-line.err .dot{background:#ef4444;}
+.casino-check-item{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;transition:background .15s;border-bottom:1px solid rgba(255,255,255,.03);}
+.casino-check-item:hover{background:rgba(255,255,255,.04);}
+.checkbox{width:16px;height:16px;border-radius:4px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;transition:all .2s;}
+.checkbox.checked{background:var(--accent);border-color:var(--accent);}
+
+/* CALLOUT OVERLAY */
+#callout-overlay{position:fixed;inset:0;pointer-events:none;z-index:1000;}
+.callout{
+  position:absolute;background:rgba(10,5,25,.95);border:1px solid var(--accent);
+  border-radius:12px;padding:14px 18px;max-width:280px;font-size:13px;line-height:1.5;
+  color:var(--text);box-shadow:0 8px 40px rgba(168,85,247,.3);
+  opacity:0;transform:scale(.9) translateY(6px);
+  transition:opacity .35s ease,transform .35s ease;pointer-events:none;
+}
+.callout.visible{opacity:1;transform:scale(1) translateY(0);}
+.callout strong{color:var(--accent);display:block;margin-bottom:4px;font-size:14px;}
+.callout-arrow{position:absolute;width:10px;height:10px;background:rgba(10,5,25,.95);border-left:1px solid var(--accent);border-top:1px solid var(--accent);transform:rotate(45deg);}
+.callout-arrow.down{bottom:-6px;border-left:none;border-top:none;border-right:1px solid var(--accent);border-bottom:1px solid var(--accent);}
+.callout-arrow.left{left:-6px;border-right:none;border-bottom:none;}
+.callout-arrow.right{right:-6px;border-left:none;border-top:none;border-right:1px solid var(--accent);border-bottom:1px solid var(--accent);}
+
+/* HIGHLIGHT RING */
+.highlight-ring{
+  position:absolute;border-radius:12px;
+  border:2px solid var(--accent);
+  box-shadow:0 0 0 4px rgba(168,85,247,.25);
+  pointer-events:none;
+  opacity:0;transition:all .4s ease;
+  z-index:999;
+}
+.highlight-ring.visible{opacity:1;}
+
+/* STEP NAV */
+#step-nav{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  background:rgba(15,15,30,.95);border:1px solid var(--border);
+  border-radius:999px;padding:10px 20px;display:flex;align-items:center;gap:16px;
+  z-index:2000;backdrop-filter:blur(12px);
+}
+#step-nav button{
+  background:rgba(255,255,255,.07);border:1px solid var(--border);color:var(--muted);
+  padding:7px 18px;border-radius:999px;cursor:pointer;font-size:13px;font-weight:600;
+  transition:all .2s;
+}
+#step-nav button:hover{background:rgba(168,85,247,.2);color:var(--accent);border-color:var(--accent);}
+#step-nav button.primary{background:linear-gradient(135deg,var(--purple),var(--accent));color:#fff;border-color:transparent;}
+#step-nav button:disabled{opacity:.35;cursor:not-allowed;}
+#step-label{font-size:12px;color:var(--muted);min-width:120px;text-align:center;}
+#step-dots{display:flex;gap:6px;}
+.sdot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.15);transition:all .3s;}
+.sdot.active{background:var(--accent);transform:scale(1.3);}
+.sdot.done{background:rgba(168,85,247,.4);}
+
+/* PREVIEW SECTION */
+.preview-section{display:flex;gap:20px;align-items:center;margin-bottom:24px;}
+.preview-box{flex:1;background:rgba(0,0,0,.3);border-radius:10px;border:1px solid var(--border);height:160px;display:flex;align-items:center;justify-content:center;font-size:32px;position:relative;overflow:hidden;}
+.preview-box .label-tag{position:absolute;bottom:8px;left:8px;background:rgba(0,0,0,.7);padding:3px 8px;border-radius:5px;font-size:11px;color:var(--muted);}
+.preview-box.after .label-tag{color:var(--green);}
+.vs-badge{font-size:20px;color:var(--muted);flex-shrink:0;}
+
+/* AUTO PLAY */
+#autoplay-btn{
+  position:fixed;top:16px;right:20px;
+  background:rgba(168,85,247,.15);border:1px solid rgba(168,85,247,.3);
+  color:var(--accent);padding:7px 16px;border-radius:999px;font-size:12px;font-weight:700;
+  cursor:pointer;z-index:2000;transition:all .2s;
+}
+#autoplay-btn:hover{background:rgba(168,85,247,.25);}
+#autoplay-btn.playing{background:rgba(16,185,129,.15);border-color:rgba(16,185,129,.3);color:#6ee7b7;}
+</style>
+</head>
+<body>
+
+<!-- APP SHELL -->
+<div id="app">
+  <!-- TOP BAR -->
+  <div id="topbar">
+    <span style="font-size:22px;">⚽</span>
+    <div>
+      <div class="app-title">Football Skin Generator</div>
+      <div class="app-sub">Game Lounge Internal Tool</div>
+    </div>
+    <div style="margin-left:auto;display:flex;gap:20px;align-items:center;">
+      <span style="font-size:12px;color:var(--muted);">Chrome / Edge only</span>
+      <div style="width:8px;height:8px;border-radius:50%;background:#10b981;"></div>
+    </div>
+  </div>
+
+  <!-- NAV RAIL -->
+  <div id="nav-rail">
+    <button class="rail-btn active" id="rail-masks" onclick="switchTab('masks')">
+      ⬡<span class="rail-label">Masks</span>
+    </button>
+    <button class="rail-btn" id="rail-presets" onclick="switchTab('presets')">
+      ◈<span class="rail-label">Presets</span>
+    </button>
+    <button class="rail-btn" id="rail-export" onclick="switchTab('export')">
+      ⚡<span class="rail-label">Export</span>
+    </button>
+  </div>
+
+  <!-- MASKS TAB: LEFT PANEL -->
+  <div id="left-panel" id="masks-left">
+    <div class="panel-header">Assets — 9/9</div>
+    <div class="asset-list">
+      <div class="asset-item active" id="ai-player">
+        <div class="asset-thumb">🧑</div>
+        <div style="flex:1;min-width:0;">
+          <div class="asset-name">player</div>
+          <div class="asset-dots">
+            <div class="adot" style="background:var(--shirt)" id="d-p-shirt"></div>
+            <div class="adot" style="background:var(--socks)" id="d-p-socks"></div>
+            <div class="adot" style="background:var(--shorts)" id="d-p-shorts"></div>
+            <div class="adot" style="background:var(--skin)" id="d-p-skin"></div>
+            <div class="adot" style="background:var(--num)" id="d-p-num"></div>
+          </div>
+        </div>
+      </div>
+      <div class="asset-item" id="ai-ball">
+        <div class="asset-thumb">⚽</div>
+        <div style="flex:1;min-width:0;">
+          <div class="asset-name">ball</div>
+          <div class="asset-dots">
+            <div class="adot" style="background:#333"></div>
+            <div class="adot" style="background:#333"></div>
+            <div class="adot" style="background:#333"></div>
+            <div class="adot" style="background:#333"></div>
+          </div>
+        </div>
+      </div>
+      <div class="asset-item" id="ai-gk">
+        <div class="asset-thumb">🧤</div>
+        <div style="flex:1;min-width:0;">
+          <div class="asset-name">goalkeeper_idle</div>
+          <div class="asset-dots">
+            <div class="adot" style="background:#333"></div>
+            <div class="adot" style="background:#333"></div>
+            <div class="adot" style="background:#333"></div>
+            <div class="adot" style="background:#333"></div>
+          </div>
+        </div>
+      </div>
+      <div class="asset-item"><div class="asset-thumb" style="font-size:14px;">🧤</div><div style="flex:1"><div class="asset-name" style="font-size:12px;">goalkeeper_left</div></div></div>
+      <div class="asset-item"><div class="asset-thumb" style="font-size:14px;">🧤</div><div style="flex:1"><div class="asset-name" style="font-size:12px;">goalkeeper_right</div></div></div>
+      <div class="asset-item"><div class="asset-thumb" style="font-size:14px;">🧤</div><div style="flex:1"><div class="asset-name" style="font-size:12px;">goalkeeper_center</div></div></div>
+      <div class="asset-item"><div class="asset-thumb" style="font-size:14px;">🧤</div><div style="flex:1"><div class="asset-name" style="font-size:12px;">gk_left_high</div></div></div>
+      <div class="asset-item"><div class="asset-thumb" style="font-size:14px;">🧤</div><div style="flex:1"><div class="asset-name" style="font-size:12px;">gk_right_high</div></div></div>
+      <div class="asset-item"><div class="asset-thumb" style="font-size:14px;">🧤</div><div style="flex:1"><div class="asset-name" style="font-size:12px;">gk_center_high</div></div></div>
+    </div>
+    <div style="padding:10px;display:flex;gap:8px;border-top:1px solid var(--border);">
+      <button class="big-btn" style="flex:1;padding:8px;font-size:11px;">💾 Player</button>
+      <button class="big-btn" style="flex:1;padding:8px;font-size:11px;">💾 GK</button>
+    </div>
+  </div>
+
+  <!-- MASKS TAB: MAIN -->
+  <div id="main-area">
+    <div id="canvas-wrap">
+      <div id="fake-canvas">
+        <!-- Player figure SVG -->
+        <div class="canvas-player">
+          <svg viewBox="0 0 80 140" width="90" height="140" xmlns="http://www.w3.org/2000/svg">
+            <!-- Head -->
+            <ellipse cx="40" cy="14" rx="11" ry="12" fill="#d4a574" id="svg-head"/>
+            <!-- Hair -->
+            <ellipse cx="40" cy="6" rx="11" ry="7" fill="#3d2b1f" id="svg-hair"/>
+            <!-- Body/Shirt -->
+            <rect x="26" y="26" width="28" height="32" rx="4" fill="#22c55e" id="svg-shirt"/>
+            <!-- Number -->
+            <text x="40" y="47" text-anchor="middle" fill="#f59e0b" font-size="11" font-weight="900" id="svg-num">9</text>
+            <!-- Arms -->
+            <rect x="14" y="27" width="12" height="22" rx="4" fill="#22c55e" id="svg-arm-l"/>
+            <rect x="54" y="27" width="12" height="22" rx="4" fill="#22c55e" id="svg-arm-r"/>
+            <!-- Hands -->
+            <ellipse cx="20" cy="50" rx="5" ry="5" fill="#d4a574"/>
+            <ellipse cx="60" cy="50" rx="5" ry="5" fill="#d4a574"/>
+            <!-- Shorts -->
+            <rect x="26" y="58" width="28" height="22" rx="3" fill="#a855f7" id="svg-shorts"/>
+            <!-- Legs/Skin -->
+            <rect x="26" y="80" width="11" height="28" rx="3" fill="#d4a574" id="svg-leg-l"/>
+            <rect x="43" y="80" width="11" height="28" rx="3" fill="#d4a574" id="svg-leg-r"/>
+            <!-- Socks -->
+            <rect x="25" y="105" width="13" height="18" rx="3" fill="#3b82f6" id="svg-sock-l"/>
+            <rect x="42" y="105" width="13" height="18" rx="3" fill="#3b82f6" id="svg-sock-r"/>
+            <!-- Boots -->
+            <ellipse cx="31" cy="126" rx="9" ry="5" fill="#1a1a2e"/>
+            <ellipse cx="49" cy="126" rx="9" ry="5" fill="#1a1a2e"/>
+          </svg>
+        </div>
+        <!-- Mask overlay layers -->
+        <div class="mask-layer" id="mask-shirt" style="background:rgba(34,197,94,.5);clip-path:polygon(30% 18%,70% 18%,80% 22%,88% 70%,12% 70%,20% 22%)"></div>
+        <div class="mask-layer" id="mask-socks" style="background:rgba(59,130,246,.5);clip-path:polygon(25% 76%,50% 76%,50% 96%,25% 96%)"></div>
+        <div class="mask-layer" id="mask-shorts" style="background:rgba(168,85,247,.5);clip-path:polygon(26% 42%,74% 42%,70% 60%,30% 60%)"></div>
+        <div class="mask-layer" id="mask-skin" style="background:rgba(249,115,22,.5);clip-path:polygon(36% 0%,64% 0%,64% 18%,36% 18%)"></div>
+      </div>
+    </div>
+
+    <!-- Frame strip -->
+    <div id="frame-strip">
+      <div class="frame-thumb active" style="font-size:16px;">🧑</div>
+      <div class="frame-thumb">🧑</div>
+      <div class="frame-thumb">🧑</div>
+      <div class="frame-thumb">🧑</div>
+      <div class="frame-thumb">🧑</div>
+      <div class="frame-thumb">🧑</div>
+      <div class="frame-thumb">🧑</div>
+      <div class="frame-thumb">🧑</div>
+      <div class="frame-thumb">🧑</div>
+      <div class="frame-thumb">🧑</div>
+      <span style="margin-left:8px;font-size:12px;color:var(--muted);flex-shrink:0;">Frame 1/17</span>
+      <button class="big-btn" style="padding:6px 12px;font-size:11px;flex-shrink:0;margin-left:auto;">Region → All</button>
+    </div>
+
+    <!-- Tool panel -->
+    <div id="tool-panel">
+      <div class="tool-section-label">Region</div>
+      <div class="region-tabs">
+        <div class="reg-tab active" style="background:rgba(34,197,94,.15);border-color:#22c55e;color:#86efac;" id="rt-shirt">Shirt</div>
+        <div class="reg-tab" id="rt-socks">Socks</div>
+        <div class="reg-tab" id="rt-shorts">Shorts</div>
+        <div class="reg-tab" id="rt-skin">Skin</div>
+        <div class="reg-tab" id="rt-num">Number</div>
+      </div>
+      <div class="tool-section-label" style="margin-top:6px;">Tool</div>
+      <div class="tool-row">
+        <div class="tool-btn active" id="tool-wand">Wand</div>
+        <div class="tool-btn" id="tool-range">Range</div>
+      </div>
+      <div class="tool-row">
+        <div class="tool-btn" id="tool-brush">Brush</div>
+        <div class="tool-btn" id="tool-lasso">Lasso</div>
+      </div>
+      <div class="tool-section-label" style="margin-top:6px;">Tolerance</div>
+      <input type="range" min="0" max="100" value="40" style="width:100%;accent-color:var(--accent);">
+      <div class="tool-section-label" style="margin-top:4px;">Modify</div>
+      <div class="morph-row">
+        <button class="morph-btn" id="morph-smooth">✨ Smooth edges</button>
+        <button class="morph-btn">↔ Grow mask</button>
+        <button class="morph-btn">⬛ Fill holes</button>
+        <button class="morph-btn">⟳ Invert</button>
+      </div>
+      <div style="margin-top:8px;padding-top:10px;border-top:1px solid var(--border);">
+        <button class="big-btn" style="width:100%;font-size:12px;" id="btn-allgk">→ All GK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRESETS TAB (hidden by default) -->
+  <div id="preset-panel" style="display:none;grid-column:2/-1;grid-row:2;display:none;overflow:hidden;flex-direction:row;">
+    <div id="preset-list">
+      <div class="panel-header" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>Presets</span>
+        <button class="big-btn" style="padding:4px 10px;font-size:11px;">+ New</button>
+      </div>
+      <div class="preset-item active" id="pi-betway">
+        <div class="preset-dot" style="background:#00a651;"></div>
+        <div><div class="preset-name">Betway</div><div class="preset-id">betway</div></div>
+      </div>
+      <div class="preset-item" id="pi-leo">
+        <div class="preset-dot" style="background:#ff6600;"></div>
+        <div><div class="preset-name">LeoVegas</div><div class="preset-id">leovegas</div></div>
+      </div>
+      <div class="preset-item" id="pi-888">
+        <div class="preset-dot" style="background:#e31837;"></div>
+        <div><div class="preset-name">888 Casino</div><div class="preset-id">888casino</div></div>
+      </div>
+      <div class="preset-item" id="pi-sky">
+        <div class="preset-dot" style="background:#00aeef;"></div>
+        <div><div class="preset-name">Sky Bet</div><div class="preset-id">skybet</div></div>
+      </div>
+      <div style="padding:10px;border-top:1px solid var(--border);margin-top:auto;display:flex;gap:8px;">
+        <button class="big-btn" style="flex:1;padding:7px;font-size:11px;">📊 Import CSV</button>
+        <button class="big-btn" style="flex:1;padding:7px;font-size:11px;">📤 Export JSON</button>
+      </div>
+    </div>
+    <div id="preset-form">
+      <div class="form-section">
+        <div class="form-section-title">Kit Info</div>
+        <div class="form-row"><span class="form-label">Casino name</span><input class="form-input" value="Betway" id="inp-name"/></div>
+        <div class="form-row"><span class="form-label">Casino ID</span><input class="form-input" value="betway" id="inp-id"/></div>
+      </div>
+      <div class="form-section">
+        <div class="form-section-title">Player Kit</div>
+        <div class="form-row"><span class="form-label">Shirt</span><div class="colour-swatch" id="sw-shirt" style="background:#00a651;"></div><input class="form-input" value="#00a651"/></div>
+        <div class="form-row"><span class="form-label">Socks</span><div class="colour-swatch" id="sw-socks" style="background:#ffffff;"></div><input class="form-input" value="#ffffff"/></div>
+        <div class="form-row"><span class="form-label">Shorts</span><div class="colour-swatch" id="sw-shorts" style="background:#00a651;"></div><input class="form-input" value="#00a651"/></div>
+        <div class="form-row"><span class="form-label">Skin tone</span><div class="colour-swatch" id="sw-skin" style="background:#d4a574;"></div><input class="form-input" value="#d4a574"/></div>
+        <div class="form-row"><span class="form-label">Number</span><div class="colour-swatch" id="sw-num" style="background:#ffffff;"></div><input class="form-input" value="#ffffff"/></div>
+        <div style="margin:16px 0 8px;"><span class="form-label">Pattern</span></div>
+        <div class="pattern-grid" id="pattern-grid">
+          <div class="pattern-btn active" id="pat-solid">Solid</div>
+          <div class="pattern-btn" id="pat-vert">Vertical</div>
+          <div class="pattern-btn" id="pat-diag">Diagonal</div>
+          <div class="pattern-btn" id="pat-half">Half &amp; half</div>
+        </div>
+        <div style="margin-top:16px;"><div class="form-section-title" style="font-size:11px;">Blend Opacity</div></div>
+        <div class="opacity-row"><span class="opacity-label">Shirt</span><div class="opacity-bar-wrap"><div class="opacity-bar" style="width:100%"></div></div><span class="opacity-val">100%</span></div>
+        <div class="opacity-row"><span class="opacity-label">Socks</span><div class="opacity-bar-wrap"><div class="opacity-bar" style="width:90%"></div></div><span class="opacity-val">90%</span></div>
+        <div class="opacity-row"><span class="opacity-label">Shorts</span><div class="opacity-bar-wrap"><div class="opacity-bar" style="width:100%"></div></div><span class="opacity-val">100%</span></div>
+        <div class="opacity-row" id="skin-opacity-row"><span class="opacity-label">Skin</span><div class="opacity-bar-wrap"><div class="opacity-bar" id="skin-opacity-bar" style="width:40%"></div></div><span class="opacity-val" id="skin-opacity-val">40%</span></div>
+        <div class="opacity-row"><span class="opacity-label">Number</span><div class="opacity-bar-wrap"><div class="opacity-bar" style="width:100%"></div></div><span class="opacity-val">100%</span></div>
+      </div>
+      <button class="big-btn" style="width:100%;padding:12px;font-size:14px;">💾 Save Preset</button>
+    </div>
+  </div>
+
+  <!-- EXPORT TAB (hidden by default) -->
+  <div id="export-panel" style="display:none;grid-column:2/-1;grid-row:2;overflow:hidden;flex-direction:row;">
+    <div id="export-left">
+      <div class="panel-header">Select Casinos</div>
+      <div style="flex:1;overflow-y:auto;">
+        <div class="casino-check-item"><div class="checkbox checked" id="chk-betway">✓</div><div class="preset-dot" style="background:#00a651;width:16px;height:16px;"></div><span style="font-size:13px;font-weight:600;">Betway</span></div>
+        <div class="casino-check-item"><div class="checkbox checked" id="chk-leo">✓</div><div class="preset-dot" style="background:#ff6600;width:16px;height:16px;"></div><span style="font-size:13px;font-weight:600;">LeoVegas</span></div>
+        <div class="casino-check-item"><div class="checkbox" id="chk-888"></div><div class="preset-dot" style="background:#e31837;width:16px;height:16px;"></div><span style="font-size:13px;font-weight:600;">888 Casino</span></div>
+        <div class="casino-check-item"><div class="checkbox checked" id="chk-sky">✓</div><div class="preset-dot" style="background:#00aeef;width:16px;height:16px;"></div><span style="font-size:13px;font-weight:600;">Sky Bet</span></div>
+      </div>
+      <div style="padding:10px;display:flex;gap:8px;border-top:1px solid var(--border);">
+        <button class="big-btn" style="flex:1;padding:7px;font-size:11px;">All</button>
+        <button class="big-btn" style="flex:1;padding:7px;font-size:11px;background:rgba(255,255,255,.08);">None</button>
+      </div>
+    </div>
+    <div id="export-main">
+      <!-- Status bar -->
+      <div class="status-bar">
+        <div class="status-card green" id="sc-assets"><div class="sc-label">Assets</div><div class="sc-val">9/9</div></div>
+        <div class="status-card green" id="sc-masks"><div class="sc-label">Masks</div><div class="sc-val">9/9</div></div>
+        <div class="status-card green" id="sc-presets"><div class="sc-label">Presets</div><div class="sc-val">4</div></div>
+        <div class="status-card amber" id="sc-pngs"><div class="sc-label">PNGs</div><div class="sc-val" id="sc-pngs-val">0/10</div></div>
+      </div>
+
+      <!-- Preview -->
+      <div style="margin-bottom:20px;">
+        <div style="font-size:13px;font-weight:700;margin-bottom:12px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;font-size:11px;">Preview</div>
+        <div class="preview-section">
+          <div class="preview-box">
+            <svg viewBox="0 0 80 140" width="60" height="100" xmlns="http://www.w3.org/2000/svg">
+              <ellipse cx="40" cy="14" rx="11" ry="12" fill="#d4a574"/>
+              <ellipse cx="40" cy="6" rx="11" ry="7" fill="#3d2b1f"/>
+              <rect x="26" y="26" width="28" height="32" rx="4" fill="#22c55e"/>
+              <rect x="14" y="27" width="12" height="22" rx="4" fill="#22c55e"/>
+              <rect x="54" y="27" width="12" height="22" rx="4" fill="#22c55e"/>
+              <rect x="26" y="58" width="28" height="22" rx="3" fill="#a855f7"/>
+              <rect x="26" y="80" width="11" height="28" rx="3" fill="#d4a574"/>
+              <rect x="43" y="80" width="11" height="28" rx="3" fill="#d4a574"/>
+              <rect x="25" y="105" width="13" height="18" rx="3" fill="#3b82f6"/>
+              <rect x="42" y="105" width="13" height="18" rx="3" fill="#3b82f6"/>
+            </svg>
+            <div class="label-tag">Original</div>
+          </div>
+          <div class="vs-badge">→</div>
+          <div class="preview-box after" id="preview-after">
+            <svg viewBox="0 0 80 140" width="60" height="100" xmlns="http://www.w3.org/2000/svg" id="preview-svg">
+              <ellipse cx="40" cy="14" rx="11" ry="12" fill="#d4a574"/>
+              <ellipse cx="40" cy="6" rx="11" ry="7" fill="#3d2b1f"/>
+              <rect x="26" y="26" width="28" height="32" rx="4" fill="#00a651"/>
+              <rect x="14" y="27" width="12" height="22" rx="4" fill="#00a651"/>
+              <rect x="54" y="27" width="12" height="22" rx="4" fill="#00a651"/>
+              <rect x="26" y="58" width="28" height="22" rx="3" fill="#00a651"/>
+              <rect x="26" y="80" width="11" height="28" rx="3" fill="#d4a574"/>
+              <rect x="43" y="80" width="11" height="28" rx="3" fill="#d4a574"/>
+              <rect x="25" y="105" width="13" height="18" rx="3" fill="#ffffff"/>
+              <rect x="42" y="105" width="13" height="18" rx="3" fill="#ffffff"/>
+            </svg>
+            <div class="label-tag">Betway kit</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PNG Slots -->
+      <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">PNG Asset Slots</div>
+      <div class="png-grid">
+        <div class="png-slot" id="png-loader_bar_bg"><div class="png-dot"></div>loader_bar_bg</div>
+        <div class="png-slot" id="png-loader_glow"><div class="png-dot"></div>loader_glow</div>
+        <div class="png-slot" id="png-loader_particle"><div class="png-dot"></div>loader_particle</div>
+        <div class="png-slot" id="png-popup_body"><div class="png-dot"></div>popup_body</div>
+        <div class="png-slot" id="png-loader_logo_bg"><div class="png-dot"></div>loader_logo_bg</div>
+        <div class="png-slot" id="png-popup_particle"><div class="png-dot"></div>popup_particle</div>
+        <div class="png-slot" id="png-loader_background"><div class="png-dot"></div>loader_background</div>
+        <div class="png-slot" id="png-banner_content"><div class="png-dot"></div>banner_content</div>
+        <div class="png-slot" id="png-loader_logo"><div class="png-dot"></div>loader_logo</div>
+        <div class="png-slot" id="png-background"><div class="png-dot"></div>background</div>
+      </div>
+
+      <!-- Export options -->
+      <div style="margin-top:20px;display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div>
+          <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Export Scope</div>
+          <div style="display:flex;flex-direction:column;gap:6px;font-size:13px;">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="radio" name="scope" checked style="accent-color:var(--accent);"> Selected casinos</label>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="radio" name="scope" style="accent-color:var(--accent);"> All casinos</label>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Package Format</div>
+          <div style="display:flex;flex-direction:column;gap:6px;font-size:13px;">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="radio" name="format" style="accent-color:var(--accent);"> One ZIP/casino</label>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="radio" name="format" style="accent-color:var(--accent);"> Master ZIP</label>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="radio" name="format" checked style="accent-color:var(--accent);"> Both</label>
+          </div>
+        </div>
+      </div>
+
+      <button class="export-btn" id="export-btn" disabled>⚡ Export</button>
+
+      <div class="progress-wrap" id="progress-wrap">
+        <div class="prog-bar-bg"><div class="prog-bar-fill" id="prog-fill"></div></div>
+        <div class="log-area" id="log-area"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CALLOUT OVERLAY -->
+<div id="callout-overlay">
+  <div class="callout" id="callout-main">
+    <div class="callout-arrow" id="callout-arr"></div>
+    <strong id="callout-title">Welcome</strong>
+    <span id="callout-body">Let's walk through the tool.</span>
+  </div>
+  <div class="highlight-ring" id="highlight-ring"></div>
+</div>
+
+<!-- STEP NAV -->
+<div id="step-nav">
+  <button id="btn-prev-step" onclick="prevStep()" disabled>← Prev</button>
+  <div id="step-dots"></div>
+  <span id="step-label">Step 1 / 12</span>
+  <button id="btn-next-step" class="primary" onclick="nextStep()">Next →</button>
+</div>
+
+<button id="autoplay-btn" onclick="toggleAutoplay()">▶ Auto-play</button>
+
+<script>
+const STEPS = [
+  {
+    tab: 'masks',
+    title: 'Welcome to the Football Skin Generator',
+    body: 'This tool rebrands the Football Shootout game for any casino — in 3 steps. Let\'s walk through each one.',
+    calloutPos: {top:'50%',left:'50%',transform:'translate(-50%,-50%)'},
+    arrClass: '', highlight: null
+  },
+  {
+    tab: 'masks',
+    title: '⬡ Step 1 — Mask Editor',
+    body: 'The left panel shows all 9 sprite assets. The player is selected. The coloured overlay shows which pixels belong to each kit region.',
+    calloutPos: {top:'80px', left:'330px'},
+    arrClass: 'left', highlight: {el:'#ai-player', pad:4}
+  },
+  {
+    tab: 'masks',
+    title: '5 Paintable Regions',
+    body: 'Each sprite has 5 regions: Shirt (green), Socks (blue), Shorts (purple), Skin (orange), Number (amber). You paint them once, then reuse forever.',
+    calloutPos: {top:'80px', right:'220px'},
+    arrClass: 'right', highlight: {el:'#tool-panel', pad:6},
+    action: () => showMaskOverlays(true)
+  },
+  {
+    tab: 'masks',
+    title: '🪄 Magic Wand Tool',
+    body: 'Select a region tab, pick the Wand tool, click a pixel — it flood-fills the matching colour. Shift+click adds more. Alt+click removes.',
+    calloutPos: {top:'80px', right:'220px'},
+    arrClass: 'right', highlight: {el:'#tool-wand', pad:6},
+    action: () => { activateTool('wand'); }
+  },
+  {
+    tab: 'masks',
+    title: '✨ Smooth Edges',
+    body: 'After painting, hit Smooth Edges to clean up any jagged borders. One click polishes the whole mask.',
+    calloutPos: {top:'80px', right:'220px'},
+    arrClass: 'right', highlight: {el:'#morph-smooth', pad:6},
+    action: () => { flashMorph(); }
+  },
+  {
+    tab: 'masks',
+    title: '→ All GK — The Real Timesaver',
+    body: 'Once the goalkeeper_idle mask is painted, one click broadcasts it to all 7 goalkeeper poses. No repainting each one manually.',
+    calloutPos: {top:'80px', right:'220px'},
+    arrClass: 'right', highlight: {el:'#btn-allgk', pad:6},
+    action: () => { flashAllGK(); }
+  },
+  {
+    tab: 'masks',
+    title: '💾 Masks Saved as JSON',
+    body: 'Save your masks as JSON files. Next time you open the tool, just reload them — you never have to repaint from scratch.',
+    calloutPos: {top:'50%', left:'80px', transform:'translateY(-50%)'},
+    arrClass: 'left', highlight: null
+  },
+  {
+    tab: 'presets',
+    title: '◈ Step 2 — Presets',
+    body: 'Each entry in this list is one casino brand. Colours are previewed as dots. Click a casino to configure its kit.',
+    calloutPos: {top:'80px', left:'330px'},
+    arrClass: 'left', highlight: {el:'#pi-betway', pad:4}
+  },
+  {
+    tab: 'presets',
+    title: '🎨 Kit Colours & Pattern',
+    body: 'Set the shirt, socks, shorts, skin tone, and number colour. Then pick a pattern — solid, stripes, diagonal, or half-and-half.',
+    calloutPos: {top:'80px', right:'20px'},
+    arrClass: 'right', highlight: {el:'#pattern-grid', pad:8},
+    action: () => { highlightPatterns(); }
+  },
+  {
+    tab: 'presets',
+    title: '🎚 Blend Opacity',
+    body: 'Control how strongly each colour applies. Skin tones usually look best at 30–50% so they don\'t appear painted on.',
+    calloutPos: {top:'80px', right:'20px'},
+    arrClass: 'right', highlight: {el:'#skin-opacity-row', pad:8},
+    action: () => { animateSkinOpacity(); }
+  },
+  {
+    tab: 'export',
+    title: '⚡ Step 3 — Export',
+    body: 'The status bar must go fully green before exporting. Assets ✓ Masks ✓ Presets ✓ — just the 10 PNG UI slots to fill.',
+    calloutPos: {top:'80px', left:'330px'},
+    arrClass: 'left', highlight: {el:'#sc-pngs', pad:6}
+  },
+  {
+    tab: 'export',
+    title: '📦 Fill PNG Slots → Export!',
+    body: 'Click each slot, upload the PNG — it validates automatically. Once all 10 are green, the Export button unlocks. Files download automatically when done.',
+    calloutPos: {top:'80px', left:'330px'},
+    arrClass: 'left', highlight: null,
+    action: () => { animatePNGFill(); }
+  },
+];
+
+let current = 0;
+let autoTimer = null;
+let autoPlaying = false;
+
+function switchTab(tab) {
+  document.querySelectorAll('.rail-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('rail-'+tab).classList.add('active');
+
+  const masksLeft = document.getElementById('left-panel');
+  const masksMain = document.getElementById('main-area');
+  const presetsPanel = document.getElementById('preset-panel');
+  const exportPanel = document.getElementById('export-panel');
+
+  masksLeft.style.display = 'none';
+  masksMain.style.display = 'none';
+  presetsPanel.style.display = 'none';
+  exportPanel.style.display = 'none';
+
+  if (tab === 'masks') {
+    masksLeft.style.display = 'flex';
+    masksMain.style.display = 'block';
+  } else if (tab === 'presets') {
+    presetsPanel.style.display = 'flex';
+    presetsPanel.style.gridColumn = '2/-1';
+    presetsPanel.style.gridRow = '2';
+  } else if (tab === 'export') {
+    exportPanel.style.display = 'flex';
+    exportPanel.style.gridColumn = '2/-1';
+    exportPanel.style.gridRow = '2';
+  }
+}
+
+function showCallout(step) {
+  const c = document.getElementById('callout-main');
+  const arr = document.getElementById('callout-arr');
+  document.getElementById('callout-title').textContent = step.title;
+  document.getElementById('callout-body').textContent = step.body;
+  c.classList.remove('visible');
+  arr.className = 'callout-arrow ' + (step.arrClass||'');
+
+  Object.assign(c.style, {top:'',left:'',right:'',bottom:'',transform:''});
+  Object.assign(c.style, step.calloutPos);
+
+  setTimeout(()=>c.classList.add('visible'), 50);
+}
+
+function showHighlight(step) {
+  const ring = document.getElementById('highlight-ring');
+  ring.classList.remove('visible');
+  if (!step.highlight) return;
+  const el = document.querySelector(step.highlight.el);
+  if (!el) return;
+  const pad = step.highlight.pad||0;
+  const r = el.getBoundingClientRect();
+  Object.assign(ring.style, {
+    top: (r.top - pad) + 'px',
+    left: (r.left - pad) + 'px',
+    width: (r.width + pad*2) + 'px',
+    height: (r.height + pad*2) + 'px',
+  });
+  setTimeout(()=>ring.classList.add('visible'), 80);
+}
+
+function buildDots() {
+  const wrap = document.getElementById('step-dots');
+  wrap.innerHTML = '';
+  STEPS.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'sdot' + (i===current?' active':i<current?' done':'');
+    wrap.appendChild(d);
+  });
+}
+
+function goStep(index) {
+  current = Math.max(0, Math.min(STEPS.length-1, index));
+  const step = STEPS[current];
+
+  switchTab(step.tab);
+  showCallout(step);
+  showHighlight(step);
+  if (step.action) setTimeout(step.action, 300);
+
+  document.getElementById('step-label').textContent = `Step ${current+1} / ${STEPS.length}`;
+  document.getElementById('btn-prev-step').disabled = current === 0;
+  document.getElementById('btn-next-step').textContent = current === STEPS.length-1 ? '↩ Restart' : 'Next →';
+  buildDots();
+}
+
+function nextStep() {
+  if (current === STEPS.length-1) { goStep(0); return; }
+  goStep(current + 1);
+}
+function prevStep() { goStep(current - 1); }
+
+function toggleAutoplay() {
+  autoPlaying = !autoPlaying;
+  const btn = document.getElementById('autoplay-btn');
+  if (autoPlaying) {
+    btn.textContent = '⏸ Playing...'; btn.classList.add('playing');
+    scheduleAuto();
+  } else {
+    btn.textContent = '▶ Auto-play'; btn.classList.remove('playing');
+    clearTimeout(autoTimer);
+  }
+}
+
+function scheduleAuto() {
+  if (!autoPlaying) return;
+  autoTimer = setTimeout(() => {
+    if (current === STEPS.length-1) {
+      goStep(0);
+    } else {
+      goStep(current + 1);
+    }
+    scheduleAuto();
+  }, 3800);
+}
+
+// Animations
+function showMaskOverlays(on) {
+  ['mask-shirt','mask-socks','mask-shorts','mask-skin'].forEach(id=>{
+    document.getElementById(id).classList.toggle('visible', on);
+  });
+}
+
+function activateTool(name) {
+  document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active'));
+  const t = document.getElementById('tool-'+name);
+  if (t) t.classList.add('active');
+}
+
+function flashMorph() {
+  const btn = document.getElementById('morph-smooth');
+  btn.classList.add('flash');
+  setTimeout(()=>btn.classList.remove('flash'), 1200);
+}
+
+function flashAllGK() {
+  const btn = document.getElementById('btn-allgk');
+  const orig = btn.textContent;
+  btn.style.background = 'linear-gradient(135deg,#10b981,#059669)';
+  btn.textContent = '✓ Propagated!';
+  setTimeout(()=>{
+    btn.style.background='';
+    btn.textContent = orig;
+  }, 1500);
+  // Flash GK items in asset list
+  ['ai-gk'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el){ el.style.background='rgba(16,185,129,.2)'; setTimeout(()=>el.style.background='',1500); }
+  });
+}
+
+function highlightPatterns() {
+  const btns = document.querySelectorAll('.pattern-btn');
+  let i=0;
+  const iv = setInterval(()=>{
+    btns.forEach(b=>b.classList.remove('active'));
+    if(i<btns.length) btns[i].classList.add('active');
+    i++;
+    if(i>btns.length){clearInterval(iv);btns[0].classList.add('active');}
+  },350);
+}
+
+function animateSkinOpacity() {
+  const bar = document.getElementById('skin-opacity-bar');
+  const val = document.getElementById('skin-opacity-val');
+  let pct = 40;
+  const target = 30;
+  const iv = setInterval(()=>{
+    pct = pct > target ? pct-2 : pct < target ? pct+2 : pct;
+    bar.style.width = pct+'%';
+    val.textContent = pct+'%';
+    if(pct === target) clearInterval(iv);
+  }, 40);
+}
+
+const PNG_IDS = ['png-loader_bar_bg','png-loader_glow','png-loader_particle','png-popup_body','png-loader_logo_bg','png-popup_particle','png-loader_background','png-banner_content','png-loader_logo','png-background'];
+let pngFilled = 0;
+
+function animatePNGFill() {
+  pngFilled = 0;
+  PNG_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if(el){ el.classList.remove('filled'); el.querySelector('.png-dot').style.background='#475569'; }
+  });
+  document.getElementById('sc-pngs').className = 'status-card amber';
+  document.getElementById('sc-pngs-val').textContent = '0/10';
+  document.getElementById('export-btn').disabled = true;
+
+  let i=0;
+  const iv = setInterval(()=>{
+    if(i>=PNG_IDS.length){ clearInterval(iv); return; }
+    const el = document.getElementById(PNG_IDS[i]);
+    if(el){ el.classList.add('filled'); el.querySelector('.png-dot').style.background='#10b981'; }
+    pngFilled = i+1;
+    document.getElementById('sc-pngs-val').textContent = pngFilled+'/10';
+    if(pngFilled===10){
+      document.getElementById('sc-pngs').className = 'status-card green';
+      document.getElementById('export-btn').disabled = false;
+      startExportAnim();
+    }
+    i++;
+  }, 220);
+}
+
+function startExportAnim() {
+  setTimeout(()=>{
+    const wrap = document.getElementById('progress-wrap');
+    wrap.style.display = 'block';
+    const fill = document.getElementById('prog-fill');
+    const log = document.getElementById('log-area');
+    log.innerHTML = '';
+    fill.style.width = '0%';
+    const casinos = ['Betway', 'LeoVegas', 'Sky Bet'];
+    let ci=0;
+    const iv = setInterval(()=>{
+      if(ci>=casinos.length){ fill.style.width='100%'; clearInterval(iv); return; }
+      const pct = ((ci+1)/casinos.length)*100;
+      fill.style.width = pct+'%';
+      const line = document.createElement('div');
+      line.className='log-line ok';
+      line.innerHTML=`<div class="dot"></div><span>✓ ${casinos[ci]} — 9 assets recoloured</span>`;
+      log.appendChild(line);
+      log.scrollTop = log.scrollHeight;
+      ci++;
+    }, 700);
+  }, 600);
+}
+
+// Init
+showMaskOverlays(false);
+switchTab('masks');
+goStep(0);
+buildDots();
+</script>
+</body>
+</html>

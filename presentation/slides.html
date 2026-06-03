@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Football Skin Generator — Presentation</title>
+<style>
+  :root {
+    --purple: #4b1797;
+    --purple-light: #6d28d9;
+    --purple-dark: #2d0d5e;
+    --accent: #a855f7;
+    --gold: #f59e0b;
+    --green: #10b981;
+    --red: #ef4444;
+    --blue: #3b82f6;
+    --text: #f1f5f9;
+    --muted: #94a3b8;
+    --card: rgba(255,255,255,0.06);
+    --border: rgba(255,255,255,0.1);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; font-family: 'Segoe UI', system-ui, sans-serif; background: #0f0f1a; color: var(--text); }
+
+  /* DECK CONTAINER */
+  #deck { width: 100%; height: 100%; position: relative; }
+  .slide {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    padding: 60px 80px;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.5s ease, transform 0.5s ease;
+    transform: translateX(60px);
+    background: radial-gradient(ellipse at 20% 50%, #1e0a3c 0%, #0f0f1a 60%);
+  }
+  .slide.active { opacity: 1; pointer-events: all; transform: translateX(0); }
+  .slide.exit { opacity: 0; transform: translateX(-60px); }
+
+  /* PROGRESS */
+  #progress-bar {
+    position: fixed; bottom: 0; left: 0; height: 3px;
+    background: linear-gradient(90deg, var(--purple), var(--accent));
+    transition: width 0.4s ease; z-index: 100;
+  }
+  #slide-counter {
+    position: fixed; bottom: 18px; right: 28px;
+    font-size: 13px; color: var(--muted); z-index: 100; letter-spacing: 1px;
+  }
+  #nav-hint {
+    position: fixed; bottom: 18px; left: 28px;
+    font-size: 12px; color: rgba(255,255,255,0.25); z-index: 100;
+  }
+
+  /* NAV BUTTONS */
+  .nav-btn {
+    position: fixed; top: 50%; transform: translateY(-50%);
+    background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+    color: var(--muted); width: 44px; height: 44px; border-radius: 50%;
+    cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s; z-index: 100;
+  }
+  .nav-btn:hover { background: rgba(168,85,247,0.2); color: var(--accent); border-color: var(--accent); }
+  #btn-prev { left: 16px; }
+  #btn-next { right: 16px; }
+
+  /* TYPOGRAPHY */
+  .label { font-size: 11px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: var(--accent); margin-bottom: 16px; }
+  h1 { font-size: 64px; font-weight: 800; line-height: 1.05; letter-spacing: -2px; }
+  h2 { font-size: 44px; font-weight: 700; line-height: 1.1; letter-spacing: -1px; }
+  h3 { font-size: 28px; font-weight: 600; }
+  p { font-size: 18px; line-height: 1.6; color: var(--muted); max-width: 680px; }
+  .highlight { color: var(--accent); }
+  .gold { color: var(--gold); }
+  .green { color: var(--green); }
+
+  /* CARDS */
+  .card-grid { display: grid; gap: 20px; width: 100%; max-width: 960px; }
+  .card-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .card-grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+  .card-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; padding: 28px 24px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .card.accent-border { border-color: var(--accent); }
+  .card .icon { font-size: 32px; }
+  .card .card-title { font-size: 16px; font-weight: 700; color: var(--text); }
+  .card .card-body { font-size: 14px; color: var(--muted); line-height: 1.5; }
+  .card .card-badge {
+    display: inline-block; padding: 3px 10px; border-radius: 20px;
+    font-size: 11px; font-weight: 700; letter-spacing: 1px;
+    background: rgba(168,85,247,0.15); color: var(--accent); border: 1px solid rgba(168,85,247,0.3);
+    width: fit-content;
+  }
+
+  /* STEP FLOW */
+  .step-flow { display: flex; align-items: center; gap: 0; width: 100%; max-width: 880px; }
+  .step-box {
+    flex: 1; background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; padding: 28px 20px; text-align: center; position: relative;
+  }
+  .step-box .step-num {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--purple), var(--accent));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 800; margin: 0 auto 12px;
+  }
+  .step-box .step-icon { font-size: 28px; margin-bottom: 8px; }
+  .step-box .step-label { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+  .step-box .step-sub { font-size: 13px; color: var(--muted); }
+  .step-arrow { font-size: 28px; color: var(--accent); padding: 0 12px; flex-shrink: 0; }
+
+  /* LIST */
+  .feature-list { list-style: none; display: flex; flex-direction: column; gap: 14px; max-width: 700px; width: 100%; }
+  .feature-list li { display: flex; align-items: flex-start; gap: 14px; font-size: 17px; }
+  .feature-list li .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); margin-top: 7px; flex-shrink: 0; }
+  .feature-list li .dot.green { background: var(--green); }
+  .feature-list li .dot.gold { background: var(--gold); }
+  .feature-list li strong { color: var(--text); }
+  .feature-list li span { color: var(--muted); }
+
+  /* TOOL PILLS */
+  .pill-row { display: flex; flex-wrap: wrap; gap: 10px; max-width: 800px; }
+  .pill {
+    padding: 8px 18px; border-radius: 999px; font-size: 14px; font-weight: 600;
+    border: 1px solid var(--border); background: var(--card);
+  }
+  .pill.purple { background: rgba(107,40,230,0.2); border-color: var(--purple-light); color: #c4b5fd; }
+  .pill.green  { background: rgba(16,185,129,0.15); border-color: #10b981; color: #6ee7b7; }
+  .pill.gold   { background: rgba(245,158,11,0.15); border-color: #f59e0b; color: #fcd34d; }
+  .pill.blue   { background: rgba(59,130,246,0.15); border-color: #3b82f6; color: #93c5fd; }
+  .pill.red    { background: rgba(239,68,68,0.15);  border-color: #ef4444; color: #fca5a5; }
+
+  /* STATUS CARDS (export tab simulation) */
+  .status-row { display: flex; gap: 16px; }
+  .status-card {
+    padding: 14px 20px; border-radius: 12px; border: 1px solid;
+    font-size: 13px; font-weight: 700; min-width: 120px; text-align: center;
+  }
+  .status-card.green { background: rgba(16,185,129,0.12); border-color: #10b981; color: #6ee7b7; }
+  .status-card.amber { background: rgba(245,158,11,0.12); border-color: #f59e0b; color: #fcd34d; }
+  .status-card.grey  { background: rgba(148,163,184,0.08); border-color: #475569; color: #94a3b8; }
+
+  /* REGION DOTS */
+  .region-row { display: flex; gap: 12px; }
+  .region-dot { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+  .region-dot span { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
+
+  /* BIG STAT */
+  .stat-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 24px; max-width: 800px; width: 100%; }
+  .stat-box { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 32px 24px; text-align: center; }
+  .stat-box .stat-num { font-size: 48px; font-weight: 900; letter-spacing: -2px; background: linear-gradient(135deg, var(--accent), var(--gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .stat-box .stat-label { font-size: 14px; color: var(--muted); margin-top: 6px; }
+
+  /* TITLE SLIDE SPECIFICS */
+  .title-logo { font-size: 48px; margin-bottom: 20px; }
+  .title-tag {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(168,85,247,0.15); border: 1px solid rgba(168,85,247,0.4);
+    padding: 6px 16px; border-radius: 999px; font-size: 13px; color: var(--accent); margin-top: 24px;
+  }
+
+  /* DIVIDER */
+  .divider { width: 60px; height: 3px; background: linear-gradient(90deg, var(--purple), var(--accent)); border-radius: 2px; margin: 20px 0; }
+
+  /* PHASE TIMELINE */
+  .phase-row { display: flex; flex-direction: column; gap: 16px; max-width: 760px; width: 100%; }
+  .phase-item { display: flex; gap: 20px; align-items: flex-start; }
+  .phase-line { display: flex; flex-direction: column; align-items: center; }
+  .phase-circle { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, var(--purple), var(--accent)); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 15px; flex-shrink: 0; }
+  .phase-connector { width: 2px; flex: 1; min-height: 20px; background: linear-gradient(180deg, var(--accent), transparent); margin-top: 4px; }
+  .phase-content { padding-top: 6px; }
+  .phase-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .phase-desc { font-size: 14px; color: var(--muted); }
+  .phase-time { display: inline-block; margin-top: 6px; padding: 2px 10px; background: rgba(168,85,247,0.12); border: 1px solid rgba(168,85,247,0.3); border-radius: 999px; font-size: 12px; color: var(--accent); }
+
+  /* SLIDE SPECIFIC */
+  .slide-inner { width: 100%; max-width: 1000px; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; width: 100%; max-width: 1000px; }
+  .slide-header { margin-bottom: 40px; }
+</style>
+</head>
+<body>
+
+<div id="deck">
+
+  <!-- SLIDE 1: TITLE -->
+  <div class="slide active" id="slide-1">
+    <div class="title-logo">⚽</div>
+    <div class="label">Game Lounge — Internal Tool</div>
+    <h1>Football<br><span class="highlight">Skin Generator</span></h1>
+    <div class="divider"></div>
+    <p>Rebrand the Football Shootout game for any casino brand — in minutes, not days.</p>
+    <div class="title-tag">⚡ Fully browser-based &nbsp;·&nbsp; No server &nbsp;·&nbsp; Offline capable</div>
+  </div>
+
+  <!-- SLIDE 2: THE PROBLEM -->
+  <div class="slide" id="slide-2">
+    <div class="label">The Challenge</div>
+    <h2>50+ casino brands.<br>One football game.<br><span class="highlight">Hundreds of assets.</span></h2>
+    <div class="divider"></div>
+    <div class="stat-grid" style="margin-top:8px;">
+      <div class="stat-box">
+        <div class="stat-num">50+</div>
+        <div class="stat-label">Casino brands to skin</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num">9</div>
+        <div class="stat-label">Animated WebP assets per skin</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num">17+</div>
+        <div class="stat-label">Frames per asset</div>
+      </div>
+    </div>
+    <p style="margin-top:28px; text-align:center;">Manually recolouring each frame for every brand would take weeks. There had to be a better way.</p>
+  </div>
+
+  <!-- SLIDE 3: THE SOLUTION -->
+  <div class="slide" id="slide-3">
+    <div class="label">The Solution</div>
+    <h2>A <span class="highlight">3-step workflow</span><br>that separates work from scale</h2>
+    <div class="divider"></div>
+    <div class="step-flow" style="margin-top:12px;">
+      <div class="step-box">
+        <div class="step-num">1</div>
+        <div class="step-icon">⬡</div>
+        <div class="step-label">Masks</div>
+        <div class="step-sub">Paint sprite regions once. Reuse forever.</div>
+      </div>
+      <div class="step-arrow">→</div>
+      <div class="step-box">
+        <div class="step-num">2</div>
+        <div class="step-icon">◈</div>
+        <div class="step-label">Presets</div>
+        <div class="step-sub">Define colours &amp; patterns per casino.</div>
+      </div>
+      <div class="step-arrow">→</div>
+      <div class="step-box">
+        <div class="step-num">3</div>
+        <div class="step-icon">⚡</div>
+        <div class="step-label">Export</div>
+        <div class="step-sub">Generate &amp; download ready-to-ship ZIPs.</div>
+      </div>
+    </div>
+    <p style="margin-top:28px; text-align:center;">The mask work happens <strong style="color:#f1f5f9">once</strong>. After that, every new casino is just colours + click Export.</p>
+  </div>
+
+  <!-- SLIDE 4: TAB 1 — MASKS -->
+  <div class="slide" id="slide-4">
+    <div class="two-col">
+      <div>
+        <div class="label">Step 1</div>
+        <h2>⬡ Mask<br><span class="highlight">Editor</span></h2>
+        <div class="divider"></div>
+        <p>Paint colour regions directly onto the animated sprites. Every pixel you paint tells the tool which part of the kit it belongs to.</p>
+        <div style="margin-top:24px;">
+          <div class="region-row" style="flex-wrap:wrap; gap:10px;">
+            <div class="region-dot"><span style="background:#22c55e"></span> Shirt</div>
+            <div class="region-dot"><span style="background:#3b82f6"></span> Socks</div>
+            <div class="region-dot"><span style="background:#a855f7"></span> Shorts</div>
+            <div class="region-dot"><span style="background:#f97316"></span> Skin</div>
+            <div class="region-dot"><span style="background:#f59e0b"></span> Number</div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="card" style="gap:16px;">
+          <div class="card-badge">4 Masking Tools</div>
+          <ul class="feature-list">
+            <li><div class="dot"></div><div><strong>Wand</strong> <span>— flood fill from click point</span></div></li>
+            <li><div class="dot"></div><div><strong>Range</strong> <span>— match colour globally</span></div></li>
+            <li><div class="dot"></div><div><strong>Brush</strong> <span>— freehand painting</span></div></li>
+            <li><div class="dot"></div><div><strong>Lasso</strong> <span>— draw a shape to fill</span></div></li>
+          </ul>
+          <div style="margin-top:8px; padding-top:16px; border-top:1px solid var(--border);">
+            <div class="card-badge" style="background:rgba(16,185,129,0.1);color:#6ee7b7;border-color:#10b981;">40-level undo/redo</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 5: MASK SUPERPOWERS -->
+  <div class="slide" id="slide-5">
+    <div class="slide-header" style="text-align:center;">
+      <div class="label">Mask Editor — Advanced Features</div>
+      <h2>Paint <span class="highlight">smarter</span>, not harder</h2>
+      <div class="divider" style="margin:20px auto;"></div>
+    </div>
+    <div class="card-grid cols-3" style="max-width:860px;">
+      <div class="card">
+        <div class="icon">🔁</div>
+        <div class="card-title">→ All GK</div>
+        <div class="card-body">One click copies goalkeeper masks to all 7 poses — no need to repaint each one.</div>
+      </div>
+      <div class="card">
+        <div class="icon">🧹</div>
+        <div class="card-title">Morph Operations</div>
+        <div class="card-body">Smooth edges, fill holes, grow or shrink masks for pixel-perfect results.</div>
+      </div>
+      <div class="card">
+        <div class="icon">🔒</div>
+        <div class="card-title">Region Lock</div>
+        <div class="card-body">Lock any region to prevent accidental overwrites while working on adjacent areas.</div>
+      </div>
+      <div class="card">
+        <div class="icon">💾</div>
+        <div class="card-title">Save &amp; Reload</div>
+        <div class="card-body">Export masks as JSON files. Reload them next session — never repaint from scratch.</div>
+      </div>
+      <div class="card">
+        <div class="icon">🎞️</div>
+        <div class="card-title">Frame Strip</div>
+        <div class="card-body">Navigate all animation frames. Copy a region to all frames with one click.</div>
+      </div>
+      <div class="card">
+        <div class="icon">🔍</div>
+        <div class="card-title">Zoom &amp; Pan</div>
+        <div class="card-body">Zoom in for precision painting, pan with right-click drag. Contrast boost for visibility.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 6: TAB 2 — PRESETS -->
+  <div class="slide" id="slide-6">
+    <div class="two-col">
+      <div>
+        <div class="label">Step 2</div>
+        <h2>◈ Preset<br><span class="highlight">Manager</span></h2>
+        <div class="divider"></div>
+        <p>Configure each casino's kit: colours, patterns, and blend intensity for both the player and goalkeeper independently.</p>
+        <div style="margin-top:24px; display:flex; flex-direction:column; gap:10px;">
+          <div class="pill-row">
+            <span class="pill purple">Shirt colour</span>
+            <span class="pill purple">Socks colour</span>
+            <span class="pill purple">Shorts colour</span>
+            <span class="pill purple">Skin tone</span>
+            <span class="pill purple">Number colour</span>
+          </div>
+          <div class="pill-row">
+            <span class="pill gold">Solid</span>
+            <span class="pill gold">Vertical stripes</span>
+            <span class="pill gold">Diagonal stripes</span>
+            <span class="pill gold">Half &amp; half</span>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div class="card accent-border">
+          <div class="icon">📊</div>
+          <div class="card-title">Bulk CSV Import</div>
+          <div class="card-body">Load 100+ casino presets from a spreadsheet in seconds. No manual entry required.</div>
+        </div>
+        <div class="card">
+          <div class="icon">🎨</div>
+          <div class="card-title">Blend Opacity</div>
+          <div class="card-body">Control how strongly each colour applies per region. Subtle skin tones, vivid shirts.</div>
+        </div>
+        <div class="card">
+          <div class="icon">📐</div>
+          <div class="card-title">Stripe Angle Control</div>
+          <div class="card-body">Set diagonal stripe angle from −45° to +45° in 5° steps.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 7: TAB 3 — EXPORT -->
+  <div class="slide" id="slide-7">
+    <div class="label" style="text-align:center;">Step 3</div>
+    <h2 style="text-align:center;">⚡ Export &amp; <span class="highlight">Package</span></h2>
+    <div class="divider" style="margin:20px auto;"></div>
+    <div style="margin-bottom:24px;">
+      <div class="status-row" style="justify-content:center;">
+        <div class="status-card green">✓ Assets 9/9</div>
+        <div class="status-card green">✓ Masks 9/9</div>
+        <div class="status-card green">✓ Presets 12</div>
+        <div class="status-card green">✓ PNGs 10/10</div>
+      </div>
+    </div>
+    <div class="card-grid cols-3" style="max-width:820px;">
+      <div class="card">
+        <div class="icon">👁️</div>
+        <div class="card-title">Before / After Preview</div>
+        <div class="card-body">Generate a live preview of any casino's kit before committing to export.</div>
+      </div>
+      <div class="card">
+        <div class="icon">📦</div>
+        <div class="card-title">Flexible Packaging</div>
+        <div class="card-body">Individual ZIPs per casino, one master ZIP, or both — your choice per export.</div>
+      </div>
+      <div class="card">
+        <div class="icon">🦖</div>
+        <div class="card-title">T-Rex Guard</div>
+        <div class="card-body">Missing PNG slots? A friendly T-Rex blocks export and lists exactly what's missing.</div>
+      </div>
+    </div>
+    <p style="margin-top:24px; text-align:center;">Each ZIP contains 9 recoloured WebP files + 10 PNG UI assets + all original game files — ready to deploy.</p>
+  </div>
+
+  <!-- SLIDE 8: TIME SAVINGS -->
+  <div class="slide" id="slide-8">
+    <div class="label" style="text-align:center;">The Workflow</div>
+    <h2 style="text-align:center;">How long does<br>it <span class="highlight">actually</span> take?</h2>
+    <div class="divider" style="margin:20px auto;"></div>
+    <div class="phase-row" style="margin-top:8px;">
+      <div class="phase-item">
+        <div class="phase-line">
+          <div class="phase-circle">1</div>
+          <div class="phase-connector"></div>
+        </div>
+        <div class="phase-content">
+          <div class="phase-title">Paint Masks</div>
+          <div class="phase-desc">Paint the 5 regions on the player, ball, and goalkeeper sprites. Propagate to all frames and GK poses.</div>
+          <span class="phase-time">⏱ 1–2 hours — done once, forever</span>
+        </div>
+      </div>
+      <div class="phase-item">
+        <div class="phase-line">
+          <div class="phase-circle">2</div>
+          <div class="phase-connector"></div>
+        </div>
+        <div class="phase-content">
+          <div class="phase-title">Create Casino Presets</div>
+          <div class="phase-desc">Define colours, patterns and opacities for each casino. Or bulk-import via CSV.</div>
+          <span class="phase-time">⏱ ~10 min per casino (or seconds via CSV)</span>
+        </div>
+      </div>
+      <div class="phase-item">
+        <div class="phase-line">
+          <div class="phase-circle">3</div>
+        </div>
+        <div class="phase-content">
+          <div class="phase-title">Export Packages</div>
+          <div class="phase-desc">Select casinos, upload 10 PNGs, click Export. Files download automatically.</div>
+          <span class="phase-time">⏱ ~5 min for any size batch</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 9: TECHNICAL HIGHLIGHTS -->
+  <div class="slide" id="slide-9">
+    <div class="label" style="text-align:center;">Under the Hood</div>
+    <h2 style="text-align:center;"><span class="highlight">Technical</span> Highlights</h2>
+    <div class="divider" style="margin:20px auto;"></div>
+    <div class="card-grid cols-2" style="max-width:840px;">
+      <div class="card">
+        <div class="pill-row"><span class="pill blue">Browser-based</span></div>
+        <div class="card-title" style="margin-top:8px;">No installation needed</div>
+        <div class="card-body">Runs entirely in Chrome or Edge. No server, no uploads, no dependencies to install.</div>
+      </div>
+      <div class="card">
+        <div class="pill-row"><span class="pill green">WebP Encode/Decode</span></div>
+        <div class="card-title" style="margin-top:8px;">Frame-by-frame processing</div>
+        <div class="card-body">Decodes animated WebP frame by frame, recolours each independently, re-encodes with original timing.</div>
+      </div>
+      <div class="card">
+        <div class="pill-row"><span class="pill purple">Pixel-perfect masks</span></div>
+        <div class="card-title" style="margin-top:8px;">Binary mask arrays</div>
+        <div class="card-body">Each frame stores a Uint8Array mask per region — precise, fast, and losslessly serialised to JSON.</div>
+      </div>
+      <div class="card">
+        <div class="pill-row"><span class="pill gold">Electron app</span></div>
+        <div class="card-title" style="margin-top:8px;">Runs locally too</div>
+        <div class="card-body">Can be launched as a desktop app via <code style="font-size:12px;background:#1e1e2e;padding:2px 6px;border-radius:4px;">npm start</code> on Windows for an offline-first experience.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 10: KEY WINS -->
+  <div class="slide" id="slide-10">
+    <div class="label" style="text-align:center;">Summary</div>
+    <h2 style="text-align:center;">Why this tool<br>is a <span class="highlight">game changer</span></h2>
+    <div class="divider" style="margin:20px auto;"></div>
+    <ul class="feature-list" style="margin:0 auto;">
+      <li><div class="dot green"></div><div><strong>Masks are a one-time investment.</strong> <span>Paint once, power every future casino from the same file.</span></div></li>
+      <li><div class="dot green"></div><div><strong>Scale without extra effort.</strong> <span>Adding 50 more casinos takes the same 5 minutes as adding 1.</span></div></li>
+      <li><div class="dot green"></div><div><strong>Zero design tool required.</strong> <span>No Photoshop, no After Effects. Everything runs in the browser.</span></div></li>
+      <li><div class="dot green"></div><div><strong>Animation preserved.</strong> <span>Every frame recoloured while keeping original timing and motion.</span></div></li>
+      <li><div class="dot gold"></div><div><strong>Bulk CSV import.</strong> <span>Drop in a spreadsheet of 100 casinos, export them all at once.</span></div></li>
+      <li><div class="dot gold"></div><div><strong>Validation before delivery.</strong> <span>T-Rex guard and status cards catch issues before bad ZIPs get shipped.</span></div></li>
+    </ul>
+  </div>
+
+  <!-- SLIDE 11: CLOSING -->
+  <div class="slide" id="slide-11">
+    <div class="title-logo">🏆</div>
+    <div class="label">Football Skin Generator</div>
+    <h1 style="font-size:52px; text-align:center;">Built for speed.<br>Built for <span class="highlight">scale.</span></h1>
+    <div class="divider" style="margin:28px auto;"></div>
+    <div class="step-flow" style="max-width:700px; margin-top:0;">
+      <div class="step-box" style="padding:20px 16px;">
+        <div class="step-icon">⬡</div>
+        <div class="step-label" style="font-size:15px;">Masks</div>
+        <div class="step-sub">Once</div>
+      </div>
+      <div class="step-arrow">→</div>
+      <div class="step-box" style="padding:20px 16px;">
+        <div class="step-icon">◈</div>
+        <div class="step-label" style="font-size:15px;">Presets</div>
+        <div class="step-sub">Per casino</div>
+      </div>
+      <div class="step-arrow">→</div>
+      <div class="step-box" style="padding:20px 16px;">
+        <div class="step-icon">⚡</div>
+        <div class="step-label" style="font-size:15px;">Export</div>
+        <div class="step-sub">Any scale</div>
+      </div>
+    </div>
+    <p style="margin-top:32px; text-align:center; font-size:16px;">Questions? Live demo follows.</p>
+  </div>
+
+</div><!-- /deck -->
+
+<!-- CONTROLS -->
+<button class="nav-btn" id="btn-prev">‹</button>
+<button class="nav-btn" id="btn-next">›</button>
+<div id="progress-bar"></div>
+<div id="slide-counter"></div>
+<div id="nav-hint">← → keys or click arrows</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const total = slides.length;
+  let current = 0;
+
+  function goTo(index) {
+    if (index < 0 || index >= total) return;
+    slides[current].classList.remove('active');
+    slides[current].classList.add('exit');
+    setTimeout(() => slides[current < index ? current : index + 1]?.classList.remove('exit'), 500);
+    const prev = current;
+    current = index;
+    slides[current].classList.add('active');
+    setTimeout(() => slides[prev].classList.remove('exit'), 520);
+    updateUI();
+  }
+
+  function updateUI() {
+    const pct = ((current + 1) / total) * 100;
+    document.getElementById('progress-bar').style.width = pct + '%';
+    document.getElementById('slide-counter').textContent = (current + 1) + ' / ' + total;
+  }
+
+  document.getElementById('btn-prev').onclick = () => goTo(current - 1);
+  document.getElementById('btn-next').onclick = () => goTo(current + 1);
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); goTo(current + 1); }
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); goTo(current - 1); }
+    if (e.key === 'Home') goTo(0);
+    if (e.key === 'End') goTo(total - 1);
+  });
+
+  // Touch swipe
+  let touchX = 0;
+  document.addEventListener('touchstart', e => { touchX = e.touches[0].clientX; });
+  document.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - touchX;
+    if (Math.abs(dx) > 50) dx < 0 ? goTo(current + 1) : goTo(current - 1);
+  });
+
+  updateUI();
+</script>
+</body>
+</html>
