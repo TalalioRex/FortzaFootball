@@ -1,0 +1,2754 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Football Skin Generator — Game Lounge</title>
+<script>
+  // Load JSZip: try local vendor copy first (works offline/Electron), fall back to CDN
+  (function(){
+    var s=document.createElement('script');
+    s.src='../vendor/jszip.min.js';
+    s.onerror=function(){
+      var cdn=document.createElement('script');
+      cdn.src='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+      document.head.appendChild(cdn);
+    };
+    document.head.appendChild(s);
+  })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700&family=Outfit:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --nr:#0c0818;      /* nav rail */
+  --lp:#140d28;      /* left panel */
+  --lp2:#1e1538;     /* left panel hover */
+  --lp3:#2a1d50;     /* left panel active */
+  --acc:#4b1797;     /* GL purple */
+  --acc2:#6b28cc;    /* accent lighter */
+  --acc-glow:rgba(75,23,151,0.35);
+  --acc-dim:rgba(75,23,151,0.12);
+  --mb:#f7f5ff;      /* main bg */
+  --ms:#ffffff;      /* main surface */
+  --ms2:#f2eeff;     /* main surface 2 */
+  --border:rgba(75,23,151,0.14);
+  --border2:#e0d8f8;
+  --tx:#150e30;
+  --tx2:#5a4d82;
+  --tx3:#9488be;
+  --dk-tx:#d0c4f4;   /* text on dark */
+  --dk-tx2:#7060a0;  /* secondary text on dark */
+  --grn:#10b981;
+  --red:#ef4444;
+  --amber:#f59e0b;
+  --font:'Outfit',system-ui,sans-serif;
+  --display:'Syne','Outfit',sans-serif;
+  --mono:'JetBrains Mono',monospace;
+}
+body{background:var(--nr);color:var(--tx);font-family:var(--font);font-weight:400;height:100vh;overflow:hidden;display:flex;}
+.hidden{display:none!important;}
+
+/* ── App shell ── */
+.app{display:flex;width:100%;height:100vh;overflow:hidden;}
+
+/* ── Nav Rail ── */
+.nav-rail{width:72px;flex-shrink:0;background:var(--nr);display:flex;flex-direction:column;border-right:1px solid rgba(255,255,255,0.04);}
+.nav-logo{height:56px;display:flex;align-items:center;justify-content:center;border-bottom:1px solid rgba(255,255,255,0.06);flex-shrink:0;}
+.nav-logo-text{font-family:var(--display);font-weight:700;font-size:15px;letter-spacing:0.04em;background:linear-gradient(135deg,#a78bfa,#7c3aed);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.nav-items{flex:1;display:flex;flex-direction:column;padding:8px 0;gap:2px;}
+.nav-btn{width:100%;height:60px;border:none;background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;color:var(--dk-tx2);transition:all 0.18s;position:relative;border-radius:0;}
+.nav-btn:hover{background:rgba(255,255,255,0.05);color:var(--dk-tx);}
+.nav-btn.active{background:rgba(124,58,237,0.15);color:#a78bfa;}
+.nav-btn.active::before{content:'';position:absolute;left:0;top:12px;bottom:12px;width:3px;background:var(--acc);border-radius:0 3px 3px 0;}
+.nav-icon{font-size:18px;line-height:1;}
+.nav-label{font-family:var(--font);font-size:9px;font-weight:500;letter-spacing:0.04em;text-transform:uppercase;}
+.nav-footer{padding:10px 6px;border-top:1px solid rgba(255,255,255,0.05);display:flex;flex-direction:column;gap:6px;flex-shrink:0;}
+.nav-chips-row{display:flex;flex-direction:column;gap:3px;}
+.nav-chip{font-family:var(--mono);font-size:8px;padding:2px 5px;border-radius:4px;border:1px solid rgba(255,255,255,0.1);color:var(--dk-tx2);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.nav-chip.ok{border-color:rgba(16,185,129,0.4);color:#34d399;}
+.nav-chip.warn{border-color:rgba(245,158,11,0.4);color:#fbbf24;}
+.nav-load-btn{position:relative;overflow:hidden;background:var(--acc);color:#fff;border:none;border-radius:6px;padding:6px 4px;font-family:var(--font);font-size:9px;font-weight:600;letter-spacing:0.03em;text-align:center;cursor:pointer;line-height:1.3;transition:background 0.15s;}
+.nav-load-btn:hover{background:var(--acc2);}
+.nav-load-btn input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.nav-status{font-family:var(--mono);font-size:8px;color:var(--dk-tx2);text-align:center;min-height:10px;word-break:break-all;}
+
+/* ── App Main ── */
+.app-main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--mb);}
+.pane{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.pane-split{display:flex;flex:1;overflow:hidden;}
+
+/* ── Left Panel (dark) ── */
+.left-panel{width:230px;flex-shrink:0;background:var(--lp);display:flex;flex-direction:column;border-right:1px solid rgba(0,0,0,0.2);}
+.lp-header{height:44px;padding:0 12px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.lp-title{font-family:var(--display);font-size:11px;font-weight:600;color:var(--dk-tx);letter-spacing:0.06em;text-transform:uppercase;flex:1;}
+.lp-body{flex:1;overflow-y:auto;padding:6px;scrollbar-width:thin;scrollbar-color:rgba(124,58,237,0.3) transparent;}
+.lp-body::-webkit-scrollbar{width:4px;}
+.lp-body::-webkit-scrollbar-thumb{background:rgba(124,58,237,0.3);border-radius:2px;}
+.lp-footer{padding:8px;border-top:1px solid rgba(255,255,255,0.06);display:flex;flex-direction:column;gap:5px;flex-shrink:0;}
+.lp-status{font-family:var(--mono);font-size:9px;min-height:12px;padding:0 2px;}
+.lp-status.ok{color:var(--grn);}
+.lp-status.err{color:var(--red);}
+
+/* ── Dark buttons (for left panel) ── */
+.dk-btn{height:26px;padding:0 10px;border-radius:5px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:var(--dk-tx);font-family:var(--font);font-size:10px;font-weight:500;cursor:pointer;transition:all 0.15s;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;}
+.dk-btn:hover{background:rgba(255,255,255,0.1);border-color:rgba(255,255,255,0.15);}
+.dk-btn-acc{background:var(--acc);border-color:var(--acc);color:#fff;}
+.dk-btn-acc:hover{background:var(--acc2);}
+.dk-btn-sm{height:22px;padding:0 8px;font-size:9px;}
+
+/* ── Asset items (left panel) ── */
+.asset-item{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:7px;cursor:pointer;transition:background 0.12s;border:1.5px solid transparent;margin-bottom:2px;}
+.asset-item:hover{background:var(--lp2);}
+.asset-item.active{background:var(--lp3);border-color:rgba(124,58,237,0.4);}
+.asset-thumb{width:38px;height:26px;border-radius:4px;border:1px solid rgba(255,255,255,0.08);background:rgba(0,0,0,0.3);object-fit:contain;image-rendering:pixelated;flex-shrink:0;}
+.asset-info{flex:1;min-width:0;}
+.asset-name{font-size:10px;font-weight:500;color:var(--dk-tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.asset-meta{font-size:8px;font-family:var(--mono);color:var(--dk-tx2);}
+.asset-dots{display:flex;gap:3px;flex-shrink:0;}
+.dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,0.12);}
+.dot.done{background:var(--grn);}
+.dot.partial{background:var(--amber);}
+
+/* ── Casino items ── */
+.casino-item{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:7px;cursor:pointer;transition:background 0.12s;border:1.5px solid transparent;margin-bottom:2px;}
+.casino-item:hover{background:var(--lp2);}
+.casino-item.active{background:var(--lp3);border-color:rgba(124,58,237,0.4);}
+.casino-color-dot{width:10px;height:10px;border-radius:50%;border:1px solid rgba(255,255,255,0.15);flex-shrink:0;}
+.casino-item-name{font-size:11px;font-weight:500;color:var(--dk-tx);flex:1;}
+.casino-item-id{font-size:8px;font-family:var(--mono);color:var(--dk-tx2);}
+
+/* ── Right/Main editor area ── */
+.editor-main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--mb);}
+.editor-empty{flex:1;display:flex;align-items:center;justify-content:center;color:var(--tx3);font-size:14px;font-weight:300;}
+.editor-content{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+#editorActive{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+
+/* ── Editor toolbar ── */
+.editor-toolbar{height:44px;padding:0 10px;border-bottom:1px solid var(--border2);background:var(--ms);display:flex;align-items:center;gap:6px;flex-shrink:0;overflow-x:auto;}
+.editor-toolbar::-webkit-scrollbar{height:0;}
+.tool-sep{width:1px;height:20px;background:var(--border2);flex-shrink:0;margin:0 2px;}
+.tool-group{display:flex;align-items:center;gap:3px;flex-shrink:0;}
+.rtab{height:28px;padding:0 12px;border-radius:7px;border:1px solid var(--border2);background:var(--ms);font-family:var(--font);font-size:11px;font-weight:500;color:var(--tx2);cursor:pointer;transition:all 0.15s;white-space:nowrap;display:inline-flex;align-items:center;gap:5px;}
+.rtab:hover{border-color:var(--acc-dim);color:var(--tx);}
+.rtab.active{background:var(--acc);border-color:var(--acc);color:#fff;}
+.rtab-dot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,0.4);display:inline-block;}
+.rtab.active .rtab-dot{background:rgba(255,255,255,0.6);}
+.rtab-dot.has-mask{background:var(--grn);}
+.rtab.active .rtab-dot.has-mask{background:rgba(255,255,255,0.9);}
+.tbtn{height:26px;padding:0 9px;border-radius:6px;border:1px solid var(--border2);background:var(--ms);color:var(--tx2);font-family:var(--font);font-size:10px;font-weight:600;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
+.tbtn:hover{border-color:var(--acc);color:var(--acc);}
+.tbtn.active{background:var(--acc);border-color:var(--acc);color:#fff;box-shadow:0 0 0 3px var(--acc-dim);}
+.tbtn.danger:hover{border-color:var(--red);color:var(--red);}
+.tol-label{font-size:9px;font-weight:600;color:var(--tx3);letter-spacing:0.05em;text-transform:uppercase;white-space:nowrap;}
+.tol-slider{width:72px;height:3px;-webkit-appearance:none;appearance:none;background:var(--border2);border-radius:2px;outline:none;cursor:pointer;}
+.tol-slider::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:var(--ms);border:2px solid var(--acc);cursor:pointer;}
+.tol-val{font-size:10px;font-family:var(--mono);color:var(--tx2);min-width:22px;}
+.px-input{width:38px;height:26px;border:1px solid var(--border2);border-radius:5px;background:var(--ms);color:var(--tx);font-family:var(--mono);font-size:10px;text-align:center;outline:none;padding:0 4px;}
+.px-input:focus{border-color:var(--acc);}
+.toolbar-status{font-size:10px;font-family:var(--mono);color:var(--tx3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px;}
+.toolbar-status.ok{color:var(--grn);}
+.toolbar-status.err{color:var(--red);}
+
+/* ── Canvas wrap ── */
+.canvas-wrap{flex:1;position:relative;overflow:hidden;background:#d8d4f0;user-select:none;}
+.checker{position:absolute;inset:0;background-image:linear-gradient(45deg,rgba(0,0,0,0.08) 25%,transparent 25%),linear-gradient(-45deg,rgba(0,0,0,0.08) 25%,transparent 25%),linear-gradient(45deg,transparent 75%,rgba(0,0,0,0.08) 75%),linear-gradient(-45deg,transparent 75%,rgba(0,0,0,0.08) 75%);background-size:12px 12px;background-position:0 0,0 6px,6px -6px,-6px 0;pointer-events:none;}
+.canvas-center{width:100%;height:100%;display:flex;align-items:center;justify-content:center;position:relative;}
+.canvas-stack{position:relative;display:inline-block;transform-origin:center center;}
+#meCanvas,#meOverlay{display:block;image-rendering:pixelated;}
+#meOverlay{position:absolute;top:0;left:0;pointer-events:none;}
+.zoom-ctrl{position:absolute;bottom:10px;right:10px;display:flex;align-items:center;gap:4px;background:rgba(255,255,255,0.92);backdrop-filter:blur(8px);border:1px solid var(--border2);border-radius:20px;padding:3px 8px;z-index:10;}
+.zoom-ctrl span{font-size:10px;font-family:var(--mono);min-width:34px;text-align:center;color:var(--tx);}
+.zoom-btn{width:20px;height:20px;border-radius:50%;border:1px solid var(--border2);background:transparent;color:var(--tx2);cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;line-height:1;transition:all 0.12s;}
+.zoom-btn:hover{border-color:var(--acc);color:var(--acc);}
+
+/* ── Anim sidebar ── */
+.anim-sidebar{width:170px;flex-shrink:0;border-left:1px solid var(--border2);background:var(--ms);display:flex;flex-direction:column;padding:10px;}
+.anim-label{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--tx3);margin-bottom:8px;}
+.anim-canvas-wrap{background:var(--ms2);border-radius:8px;overflow:hidden;display:flex;align-items:center;justify-content:center;min-height:70px;margin-bottom:8px;border:1px solid var(--border2);}
+#meAnimCanvas{max-width:148px;max-height:110px;display:block;image-rendering:pixelated;}
+.anim-ctrls{display:flex;align-items:center;gap:8px;}
+.anim-play-btn{width:28px;height:28px;border-radius:50%;border:1.5px solid var(--border2);background:var(--ms);color:var(--tx);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;flex-shrink:0;}
+.anim-play-btn:hover{border-color:var(--acc);color:var(--acc);}
+.anim-info{font-size:10px;font-family:var(--mono);color:var(--tx2);}
+
+/* ── Frame strip ── */
+.frame-strip-area{flex-shrink:0;border-top:1px solid var(--border2);background:var(--ms);}
+.frame-strip{display:flex;gap:3px;padding:6px 8px;overflow-x:auto;scrollbar-width:thin;scrollbar-color:rgba(124,58,237,0.2) transparent;}
+.frame-strip::-webkit-scrollbar{height:3px;}
+.frame-strip::-webkit-scrollbar-thumb{background:rgba(124,58,237,0.3);border-radius:2px;}
+.fs-thumb{flex-shrink:0;border-radius:3px;border:2px solid transparent;cursor:pointer;display:block;image-rendering:pixelated;transition:border-color 0.12s;}
+.fs-thumb.active{border-color:var(--acc);}
+.frame-controls{display:flex;align-items:center;gap:6px;padding:4px 8px 6px;flex-wrap:wrap;}
+.frame-label{font-size:10px;font-family:var(--mono);color:var(--tx2);}
+.btn-ghost-sm{height:22px;padding:0 8px;border-radius:5px;border:1px solid var(--border2);background:transparent;color:var(--tx2);font-family:var(--font);font-size:10px;cursor:pointer;transition:all 0.12s;}
+.btn-ghost-sm:hover{border-color:var(--acc);color:var(--acc);}
+.hint-text{font-size:9px;color:var(--tx3);}
+
+/* ── Main buttons ── */
+.btn{height:30px;padding:0 14px;border-radius:7px;border:1px solid var(--border2);background:var(--ms);color:var(--tx);font-family:var(--font);font-size:11px;font-weight:500;cursor:pointer;transition:all 0.15s;white-space:nowrap;display:inline-flex;align-items:center;gap:5px;}
+.btn:hover{border-color:var(--acc);color:var(--acc);}
+.btn:disabled{opacity:0.4;pointer-events:none;}
+.btn-sm{height:26px;padding:0 10px;font-size:10px;}
+.btn-acc{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:600;}
+.btn-acc:hover{background:var(--acc2);border-color:var(--acc2);color:#fff;}
+.btn-ghost{background:transparent;border-color:transparent;color:var(--tx2);}
+.btn-ghost:hover{background:var(--ms2);color:var(--tx);}
+.btn-danger{background:var(--red);border-color:var(--red);color:#fff;font-weight:600;}
+.btn-danger:hover{background:#dc2626;border-color:#dc2626;}
+
+/* ── Preset form ── */
+.form-area{flex:1;overflow-y:auto;padding:16px 18px;}
+.form-section{margin-bottom:18px;}
+.form-section-title{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--tx3);margin-bottom:10px;padding-bottom:5px;border-bottom:1px solid var(--border2);}
+.form-row{display:flex;align-items:center;gap:10px;margin-bottom:9px;flex-wrap:wrap;}
+.form-label{font-size:11px;color:var(--tx2);min-width:96px;flex-shrink:0;font-weight:500;}
+.form-input{flex:1;min-width:0;height:30px;padding:0 10px;border:1px solid var(--border2);border-radius:7px;background:var(--ms);color:var(--tx);font-family:var(--font);font-size:11px;outline:none;transition:border 0.15s;}
+.form-input:focus{border-color:var(--acc);}
+select.form-input{cursor:pointer;}
+.color-wrap{display:flex;align-items:center;gap:7px;}
+.color-swatch{width:24px;height:24px;border-radius:5px;border:1.5px solid var(--border2);cursor:pointer;flex-shrink:0;transition:border-color 0.15s;}
+.color-swatch:hover{border-color:var(--acc);}
+.color-hex{width:76px;height:30px;padding:0 8px;border:1px solid var(--border2);border-radius:7px;background:var(--ms);font-family:var(--mono);font-size:11px;color:var(--tx);outline:none;transition:border 0.15s;}
+.color-hex:focus{border-color:var(--acc);}
+input[type=color]{width:0;height:0;opacity:0;position:absolute;}
+.range-row{display:flex;align-items:center;gap:8px;flex:1;}
+.range-row input[type=range]{flex:1;height:3px;-webkit-appearance:none;appearance:none;background:var(--border2);border-radius:2px;outline:none;}
+.range-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:var(--ms);border:2px solid var(--acc);cursor:pointer;}
+.range-val{font-size:10px;font-family:var(--mono);color:var(--tx2);min-width:28px;text-align:right;}
+.form-actions-bar{display:flex;gap:7px;padding:10px 16px;border-top:1px solid var(--border2);background:var(--ms);flex-shrink:0;align-items:center;}
+
+/* ── Generator ── */
+.gen-status-bar{display:flex;gap:8px;padding:10px 14px;border-bottom:1px solid var(--border2);background:var(--ms);flex-shrink:0;flex-wrap:wrap;}
+.gen-status-card{display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:8px;border:1px solid var(--border2);background:var(--ms2);}
+.gen-status-card.ok{border-color:rgba(16,185,129,0.3);background:rgba(16,185,129,0.06);}
+.gen-status-card.err{border-color:rgba(239,68,68,0.3);background:rgba(239,68,68,0.05);}
+.gen-status-icon{font-size:14px;}
+.gen-status-text{font-size:11px;font-weight:600;color:var(--tx);}
+.gen-status-sub{font-size:9px;font-family:var(--mono);color:var(--tx3);}
+.gen-preview{flex:1;display:flex;align-items:center;justify-content:center;background:#d8d4f0;overflow:hidden;}
+.gen-preview canvas{max-width:100%;max-height:100%;image-rendering:pixelated;}
+.gen-preview-msg{color:var(--tx2);font-size:13px;font-weight:300;}
+.gen-controls{padding:12px 16px;border-bottom:1px solid var(--border2);background:var(--ms);flex-shrink:0;display:flex;flex-direction:column;gap:9px;}
+.gen-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.gen-label{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:var(--tx3);min-width:70px;flex-shrink:0;}
+.radio-group{display:flex;gap:10px;flex-wrap:wrap;}
+.radio-group label{display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;color:var(--tx2);}
+.radio-group input{accent-color:var(--acc);}
+.gen-bottom{flex-shrink:0;border-top:1px solid var(--border2);padding:10px 16px;background:var(--ms);display:flex;flex-direction:column;gap:7px;}
+.gen-export-row{display:flex;align-items:center;gap:10px;}
+.progress-bar-wrap{width:100%;height:4px;background:var(--border2);border-radius:2px;overflow:hidden;}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--acc),var(--acc2));transition:width 0.25s;width:0%;}
+.progress-log{font-size:10px;font-family:var(--mono);color:var(--tx2);max-height:80px;overflow-y:auto;line-height:1.7;}
+.progress-log .log-ok{color:var(--grn);}
+.progress-log .log-err{color:var(--red);}
+.st{font-size:10px;font-family:var(--mono);color:var(--tx2);min-height:14px;}
+.st.ok{color:var(--grn);}.st.err{color:var(--red);}
+.swap-slot{display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--tx2);cursor:pointer;padding:4px 8px;border:1px solid var(--border2);border-radius:6px;background:var(--ms2);transition:border-color 0.15s;}
+.swap-slot:hover{border-color:var(--acc);color:var(--acc);}
+.swap-slot.has-swap{border-color:rgba(16,185,129,0.5);background:rgba(16,185,129,0.06);}
+.swap-slot input[type=file]{display:none;}
+.swap-name{white-space:nowrap;}
+.swap-dot{width:7px;height:7px;border-radius:50%;background:#ddd;flex-shrink:0;transition:background 0.15s;}
+.swap-slot.has-swap .swap-dot{background:var(--grn);}
+/* ── T-Rex modal ── */
+.trex-modal{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.75);backdrop-filter:blur(4px);}
+.trex-box{background:var(--ms);border:2px solid var(--red);border-radius:16px;padding:28px 32px;max-width:520px;width:90%;display:flex;flex-direction:column;gap:14px;align-items:center;}
+.trex-art{font-family:var(--mono);font-size:12px;color:var(--red);white-space:pre;line-height:1.3;text-align:left;}
+.trex-title{font-family:var(--display);font-size:22px;font-weight:700;color:var(--red);}
+.trex-body{font-size:12px;color:var(--tx2);text-align:center;line-height:1.6;max-width:380px;}
+.trex-missing{font-family:var(--mono);font-size:11px;color:var(--amber);background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.3);border-radius:8px;padding:10px 14px;width:100%;max-height:140px;overflow-y:auto;}
+/* ── Region lock ── */
+.rtab-lock{font-size:9px;cursor:pointer;opacity:0.35;margin-left:3px;transition:opacity 0.15s;user-select:none;display:inline-block;}
+.rtab-lock:hover{opacity:0.8;}
+.rtab-lock.locked{opacity:1;}
+/* ── Tool Panel (right side, Photoshop-style) ── */
+.tool-panel{width:176px;flex-shrink:0;background:var(--ms);border-left:1px solid var(--border2);display:flex;flex-direction:column;overflow-y:auto;padding:6px;gap:0;scrollbar-width:thin;scrollbar-color:rgba(124,58,237,0.2) transparent;}
+.tool-panel::-webkit-scrollbar{width:3px;}
+.tool-panel::-webkit-scrollbar-thumb{background:rgba(124,58,237,0.2);border-radius:2px;}
+.tp-section{display:flex;flex-direction:column;gap:3px;padding:5px 0;}
+.tp-label{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--tx3);}
+.tp-row{display:flex;align-items:center;justify-content:space-between;gap:4px;}
+.tp-sep{height:1px;background:var(--border2);margin:2px 0;flex-shrink:0;}
+.tp-grid2{display:grid;grid-template-columns:1fr 1fr;gap:3px;}
+.tp-btn{width:100%;height:26px;padding:0 8px;border-radius:6px;border:1px solid var(--border2);background:var(--ms);color:var(--tx2);font-family:var(--font);font-size:10px;font-weight:600;cursor:pointer;transition:all 0.15s;text-align:left;display:flex;align-items:center;justify-content:space-between;gap:4px;}
+.tp-btn:hover{border-color:var(--acc);color:var(--acc);}
+.tp-btn.active{background:var(--acc);border-color:var(--acc);color:#fff;box-shadow:0 0 0 3px var(--acc-dim);}
+.tp-btn.danger:hover{border-color:var(--red);color:var(--red);}
+.tp-tool{justify-content:center;text-align:center;}
+.tp-slider{width:100%;height:3px;-webkit-appearance:none;appearance:none;background:var(--border2);border-radius:2px;outline:none;cursor:pointer;display:block;}
+.tp-slider::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:var(--ms);border:2px solid var(--acc);cursor:pointer;}
+.tp-val{font-size:9px;font-family:var(--mono);color:var(--tx2);white-space:nowrap;}
+
+/* ── Tutorial overlay ── */
+#tourOverlay{position:fixed;inset:0;z-index:8000;pointer-events:none;}
+#tourOverlay.active{pointer-events:all;}
+#tourDim{position:absolute;inset:0;background:rgba(0,0,0,0);transition:background .35s;}
+#tourOverlay.active #tourDim{background:rgba(8,4,20,0.72);}
+#tourSpotlight{
+  position:absolute;border-radius:10px;
+  box-shadow:0 0 0 9999px rgba(8,4,20,0.72);
+  transition:all .38s cubic-bezier(.4,0,.2,1);
+  pointer-events:none;z-index:8001;
+  outline:2px solid rgba(124,58,237,0.7);
+  outline-offset:2px;
+}
+#tourCard{
+  position:absolute;z-index:8002;
+  background:#0e0820;border:1px solid rgba(124,58,237,0.45);
+  border-radius:14px;padding:18px 20px 14px;width:300px;
+  box-shadow:0 12px 48px rgba(75,23,151,0.45),0 0 0 1px rgba(124,58,237,0.2);
+  transition:all .38s cubic-bezier(.4,0,.2,1);
+  opacity:0;transform:scale(.93) translateY(6px);
+}
+#tourCard.show{opacity:1;transform:scale(1) translateY(0);}
+#tourCard .tc-label{font-size:9px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:#7c3aed;margin-bottom:8px;}
+#tourCard .tc-title{font-size:15px;font-weight:700;color:#e2d9f3;margin-bottom:6px;line-height:1.3;}
+#tourCard .tc-body{font-size:12px;color:#9488be;line-height:1.6;margin-bottom:12px;}
+#tourCard .tc-img{width:100%;border-radius:8px;margin-bottom:12px;object-fit:contain;max-height:100px;background:#0a0616;}
+#tourCard .tc-footer{display:flex;align-items:center;gap:8px;}
+#tourCard .tc-dots{display:flex;gap:5px;flex:1;}
+#tourCard .tc-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.12);transition:all .2s;}
+#tourCard .tc-dot.cur{background:#7c3aed;transform:scale(1.35);}
+#tourCard .tc-dot.done{background:rgba(124,58,237,0.4);}
+#tourCard .tc-btn{height:28px;padding:0 14px;border-radius:7px;border:none;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font);transition:all .15s;}
+#tourCard .tc-btn.sec{background:rgba(255,255,255,0.07);color:#9488be;}
+#tourCard .tc-btn.sec:hover{background:rgba(255,255,255,0.12);color:#e2d9f3;}
+#tourCard .tc-btn.pri{background:linear-gradient(135deg,#4b1797,#7c3aed);color:#fff;}
+#tourCard .tc-btn.pri:hover{opacity:.85;}
+#tourCard .tc-btn:disabled{opacity:.3;cursor:not-allowed;}
+#tourArrow{position:absolute;width:12px;height:12px;background:#0e0820;border:1px solid rgba(124,58,237,0.45);transform:rotate(45deg);z-index:8001;}
+.nav-tour-btn{width:100%;height:26px;background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.25);border-radius:6px;color:#7c3aed;font-family:var(--font);font-size:9px;font-weight:700;letter-spacing:0.05em;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:5px;}
+.nav-tour-btn:hover{background:rgba(124,58,237,0.22);border-color:rgba(124,58,237,0.5);color:#a78bfa;}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ══ NAV RAIL ══ -->
+<nav class="nav-rail">
+  <div class="nav-logo"><img src="data:image/png;base64,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" alt="game lounge" style="width:36px;height:36px;border-radius:8px;display:block;background:#fff;padding:3px;"></div>
+  <div class="nav-items">
+    <button class="nav-btn active" id="nbMask" onclick="switchTab('mask')">
+      <div class="nav-icon">⬡</div>
+      <div class="nav-label">Masks</div>
+    </button>
+    <button class="nav-btn" id="nbPresets" onclick="switchTab('presets')">
+      <div class="nav-icon">◈</div>
+      <div class="nav-label">Presets</div>
+    </button>
+    <button class="nav-btn" id="nbGen" onclick="switchTab('gen')">
+      <div class="nav-icon">⚡</div>
+      <div class="nav-label">Export</div>
+    </button>
+  </div>
+  <div class="nav-footer">
+    <div class="nav-chips-row">
+      <div class="nav-chip" id="chipAssets">Assets 0/9</div>
+      <div class="nav-chip" id="chipMasks">Masks 0/9</div>
+      <div class="nav-chip" id="chipPresets">Presets 0</div>
+    </div>
+    <label class="nav-load-btn">
+      Load Assets
+      <input type="file" id="folderInput" webkitdirectory multiple accept="">
+    </label>
+    <div class="nav-status" id="folderStatus"></div>
+    <button class="nav-tour-btn" onclick="startTour()">▶ Tour</button>
+  </div>
+</nav>
+
+<!-- ══ MAIN ══ -->
+<div class="app-main">
+
+<!-- ── PANE: MASK EDITOR ── -->
+<div class="pane" id="paneMask">
+  <div class="pane-split">
+
+    <!-- Left: asset list (dark) -->
+    <div class="left-panel">
+      <div class="lp-header">
+        <span class="lp-title">Assets</span>
+      </div>
+      <div class="lp-body" id="assetGrid"></div>
+      <div class="lp-footer">
+        <div style="display:flex;gap:4px;">
+          <button class="dk-btn dk-btn-acc dk-btn-sm" onclick="saveMaskLibrary('player')" style="flex:1;" title="Save player.webp + ball.webp masks">💾 Player</button>
+          <button class="dk-btn dk-btn-acc dk-btn-sm" onclick="saveMaskLibrary('goalkeeper')" style="flex:1;" title="Save all 7 goalkeeper masks">💾 GK</button>
+        </div>
+        <div style="display:flex;gap:4px;">
+          <label class="dk-btn dk-btn-sm" style="cursor:pointer;flex:1;justify-content:center;">📂 Player<input type="file" accept=".json" style="display:none" onchange="loadMaskLibraryFile(this.files[0],'player');this.value='';"></label>
+          <label class="dk-btn dk-btn-sm" style="cursor:pointer;flex:1;justify-content:center;">📂 GK<input type="file" accept=".json" style="display:none" onchange="loadMaskLibraryFile(this.files[0],'goalkeeper');this.value='';"></label>
+        </div>
+        <div class="lp-status" id="maskStatus"></div>
+      </div>
+    </div>
+
+    <!-- Right: editor (light) -->
+    <div class="editor-main">
+
+      <!-- Content area -->
+      <div class="editor-content">
+        <div class="editor-empty" id="editorEmpty">Select an asset from the list to begin masking</div>
+
+        <div id="editorActive" class="hidden">
+          <!-- Canvas + anim preview -->
+          <div style="flex:1;display:flex;overflow:hidden;">
+            <div class="canvas-wrap" id="meCanvasWrap">
+              <div class="checker"></div>
+              <div class="canvas-center" id="meCanvasInner">
+                <div class="canvas-stack" id="meCanvasStack">
+                  <canvas id="meCanvas"></canvas>
+                  <canvas id="meOverlay"></canvas>
+                </div>
+              </div>
+              <div class="zoom-ctrl">
+                <button class="zoom-btn" onclick="meZoomAdj(-0.25)">−</button>
+                <span id="meZoomLabel">100%</span>
+                <button class="zoom-btn" onclick="meZoomAdj(0.25)">+</button>
+                <button class="zoom-btn" onclick="meFitCanvas();meApplyTransform()" title="Fit">⊡</button>
+              </div>
+            </div>
+
+            <!-- Tool Panel -->
+            <div class="tool-panel" id="toolPanel">
+
+              <!-- Region -->
+              <div class="tp-section">
+                <div class="tp-label">Region</div>
+                <button class="tp-btn active" onclick="setRegion('shirt')" id="rtabShirt">Shirt <span style="display:flex;align-items:center;gap:4px;"><span class="rtab-dot" id="rdotShirt"></span><span class="rtab-lock" id="rlock_shirt" onclick="toggleRegionLock('shirt',event)" title="Lock">🔒</span></span></button>
+                <button class="tp-btn" onclick="setRegion('socks')" id="rtabSocks">Socks <span style="display:flex;align-items:center;gap:4px;"><span class="rtab-dot" id="rdotSocks"></span><span class="rtab-lock" id="rlock_socks" onclick="toggleRegionLock('socks',event)" title="Lock">🔒</span></span></button>
+                <button class="tp-btn" onclick="setRegion('shorts')" id="rtabShorts">Shorts <span style="display:flex;align-items:center;gap:4px;"><span class="rtab-dot" id="rdotShorts"></span><span class="rtab-lock" id="rlock_shorts" onclick="toggleRegionLock('shorts',event)" title="Lock">🔒</span></span></button>
+                <button class="tp-btn" onclick="setRegion('skin')" id="rtabSkin">Skin <span style="display:flex;align-items:center;gap:4px;"><span class="rtab-dot" id="rdotSkin"></span><span class="rtab-lock" id="rlock_skin" onclick="toggleRegionLock('skin',event)" title="Lock">🔒</span></span></button>
+                <button class="tp-btn" onclick="setRegion('number')" id="rtabNumber" style="display:none;">Number <span style="display:flex;align-items:center;gap:4px;"><span class="rtab-dot" id="rdotNumber"></span><span class="rtab-lock" id="rlock_number" onclick="toggleRegionLock('number',event)" title="Lock">🔒</span></span></button>
+              </div>
+
+              <div class="tp-sep"></div>
+
+              <!-- Tools -->
+              <div class="tp-section">
+                <div class="tp-label">Tool</div>
+                <div class="tp-grid2">
+                  <button class="tp-btn tp-tool active" id="tbnWand" onclick="meTool('wand')" title="[W]">Wand</button>
+                  <button class="tp-btn tp-tool" id="tbnRange" onclick="meTool('range')" title="[R]">Range</button>
+                  <button class="tp-btn tp-tool" id="tbnBrush" onclick="meTool('brush')" title="[B]">Brush</button>
+                  <button class="tp-btn tp-tool" id="tbnLasso" onclick="meTool('lasso')" title="[L]">Lasso</button>
+                </div>
+                <button class="tp-btn tp-tool" id="tbnAnchor" onclick="meTool('anchor')" style="display:none;">Place #</button>
+              </div>
+
+              <div class="tp-sep"></div>
+
+              <!-- Tolerance -->
+              <div class="tp-section">
+                <div class="tp-row"><span class="tp-label">Tolerance</span><span class="tp-val" id="meTolVal">40</span></div>
+                <input type="range" id="meToleranceSlider" min="0" max="100" value="40" class="tp-slider" title="Wand + Range tolerance">
+              </div>
+
+              <!-- Brush size -->
+              <div class="tp-section">
+                <div class="tp-row"><span class="tp-label">Brush size</span><span class="tp-val" id="meBrushVal">5px</span></div>
+                <input type="range" id="meBrushSize" min="1" max="20" value="5" class="tp-slider" title="[ decrease  ] increase">
+              </div>
+
+              <div class="tp-sep"></div>
+
+              <!-- Modify -->
+              <div class="tp-section">
+                <div class="tp-label">Modify</div>
+                <button class="tp-btn" onclick="doSmooth()" title="[S]">Smooth edges</button>
+                <button class="tp-btn" onclick="doInvert()">Invert</button>
+                <button class="tp-btn" onclick="doFillHoles()">Fill holes</button>
+              </div>
+
+              <!-- Grow / Shrink -->
+              <div class="tp-section">
+                <div class="tp-row">
+                  <span class="tp-label">Grow / Shrink</span>
+                  <input type="number" id="growPx" value="2" min="1" max="30" class="px-input" title="px">
+                </div>
+                <div class="tp-grid2">
+                  <button class="tp-btn tp-tool" onclick="doGrowMask()">▲ Grow</button>
+                  <button class="tp-btn tp-tool" onclick="doShrinkMask()">▼ Shrink</button>
+                </div>
+              </div>
+
+              <!-- GK -->
+              <div class="tp-section">
+                <button class="tp-btn" id="tbnAllGK" onclick="propagateToAllGK()" title="Copy region mask to all 7 GK assets">→ All GK</button>
+              </div>
+
+              <div class="tp-sep"></div>
+
+              <!-- Overlay -->
+              <div class="tp-section">
+                <div class="tp-row"><span class="tp-label">Overlay</span><span class="tp-val" id="meOpacityVal">45%</span></div>
+                <input type="range" id="meOpacitySlider" min="10" max="100" value="45" class="tp-slider" title="Mask overlay opacity">
+              </div>
+
+              <!-- Contrast -->
+              <div class="tp-section">
+                <button class="tp-btn" id="tbnContrast" onclick="toggleContrast()" title="Boost contrast to see edges — visual only">Contrast boost</button>
+              </div>
+
+              <div class="tp-sep"></div>
+
+              <!-- Undo / Redo -->
+              <div class="tp-section">
+                <div class="tp-grid2">
+                  <button class="tp-btn tp-tool" id="tbnUndo" onclick="doUndo()" title="Ctrl+Z" disabled style="opacity:0.4;">↩ Undo</button>
+                  <button class="tp-btn tp-tool" id="tbnRedo" onclick="doRedo()" title="Ctrl+Y" disabled style="opacity:0.4;">↪ Redo</button>
+                </div>
+              </div>
+
+              <div class="tp-sep"></div>
+
+              <!-- Clear -->
+              <div class="tp-section">
+                <button class="tp-btn danger" onclick="meClearFrame()">Clear frame</button>
+                <button class="tp-btn danger" onclick="meClearAll()">Clear all</button>
+              </div>
+
+              <!-- Status -->
+              <div style="flex:1;min-height:10px;"></div>
+              <div style="padding:4px 2px;">
+                <span class="toolbar-status" id="editorStatus" style="max-width:100%;word-break:break-word;white-space:normal;font-size:9px;"></span>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Frame strip -->
+          <div class="frame-strip-area">
+            <div class="frame-strip" id="meStrip"></div>
+            <div class="frame-controls">
+              <span class="frame-label" id="meFrameLabel">Frame 1/1</span>
+              <button class="btn-ghost-sm" onclick="meCopyToPrev()">← Prev</button>
+              <button class="btn-ghost-sm" onclick="meCopyToNext()">Next →</button>
+              <button class="btn-ghost-sm" onclick="meCopyToAll()">Region → All</button>
+              <div style="flex:1;"></div>
+              <span class="hint-text">Drag=include · Alt+drag=exclude · Right-click=pan</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── PANE: CASINO PRESETS ── -->
+<div class="pane hidden" id="panePresets">
+  <div class="pane-split">
+
+    <!-- Left: casino list (dark) -->
+    <div class="left-panel">
+      <div class="lp-header">
+        <span class="lp-title">Casinos</span>
+        <button class="dk-btn dk-btn-acc dk-btn-sm" onclick="addPreset()">+ New</button>
+      </div>
+      <div class="lp-body" id="casinoList"></div>
+      <div class="lp-footer">
+        <label class="dk-btn" style="cursor:pointer;">Import CSV<input type="file" accept=".csv" style="display:none" onchange="importCSVFile(this.files[0]);this.value='';"></label>
+        <button class="dk-btn" onclick="exportPresetsJSON()">Export JSON</button>
+        <div class="lp-status" id="presetStatus"></div>
+      </div>
+    </div>
+
+    <!-- Right: preset form (light) -->
+    <div class="editor-main">
+      <div class="editor-empty" id="presetFormEmpty">Select or create a casino preset</div>
+      <div style="display:none;flex:1;flex-direction:column;overflow:hidden;" id="presetFormActive">
+        <div class="form-area" id="presetFormBody"></div>
+        <div class="form-actions-bar">
+          <button class="btn btn-acc" onclick="saveCurrentPreset()">Save preset</button>
+          <button class="btn btn-ghost" onclick="duplicatePreset()">Duplicate</button>
+          <div style="flex:1;"></div>
+          <button class="btn btn-danger btn-sm" onclick="deleteCurrentPreset()">Delete</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── PANE: GENERATOR ── -->
+<div class="pane hidden" id="paneGen">
+  <div class="pane-split">
+
+    <!-- Left: casino selector (dark) -->
+    <div class="left-panel">
+      <div class="lp-header">
+        <span class="lp-title">Casinos</span>
+        <div style="display:flex;gap:4px;">
+          <button class="dk-btn dk-btn-sm" onclick="genSelectAll()">All</button>
+          <button class="dk-btn dk-btn-sm" onclick="genSelectNone()">None</button>
+        </div>
+      </div>
+      <div class="lp-body" id="genCasinoList"></div>
+    </div>
+
+    <!-- Right: generator main (light) -->
+    <div class="editor-main">
+      <div class="gen-status-bar" id="genStatusBar"></div>
+      <div class="gen-preview" id="genPreviewWrap">
+        <span class="gen-preview-msg" id="genPreviewMsg">Select a casino to preview</span>
+        <canvas id="genPreviewCanvas" style="display:none;max-width:100%;max-height:100%;"></canvas>
+      </div>
+      <div class="gen-controls">
+        <div class="gen-row">
+          <span class="gen-label">Preview</span>
+          <select id="genPreviewAsset" class="form-input" style="max-width:180px;height:28px;font-size:11px;">
+            <option value="player">player.webp</option>
+            <option value="gk_idle">GK idle</option>
+            <option value="gk_left">GK left</option>
+            <option value="gk_right">GK right</option>
+            <option value="gk_center">GK center</option>
+            <option value="gk_left_h">GK left high</option>
+            <option value="gk_right_h">GK right high</option>
+            <option value="gk_center_h">GK center high</option>
+            <option value="ball">ball.webp</option>
+          </select>
+          <button class="btn btn-acc btn-sm" onclick="genPreview()">Generate preview</button>
+          <button class="btn btn-ghost btn-sm" id="btnToggleBA" onclick="toggleBeforeAfter()" style="display:none;">Show: Before</button>
+        </div>
+        <div class="gen-row">
+          <span class="gen-label">Export</span>
+          <div class="radio-group">
+            <label><input type="radio" name="exportMode" value="selected" checked> Selected</label>
+            <label><input type="radio" name="exportMode" value="all"> All casinos</label>
+          </div>
+        </div>
+        <div class="gen-row">
+          <span class="gen-label">Package</span>
+          <div class="radio-group">
+            <label><input type="radio" name="pkgMode" value="individual" checked> One ZIP/casino</label>
+            <label><input type="radio" name="pkgMode" value="master"> Master ZIP</label>
+            <label><input type="radio" name="pkgMode" value="both"> Both</label>
+          </div>
+        </div>
+        <div class="gen-row" style="align-items:flex-start;flex-wrap:wrap;gap:6px;">
+          <span class="gen-label" style="padding-top:4px;">PNG Assets <span style="font-weight:400;color:var(--red);font-size:9px;">ALL REQUIRED</span></span>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;flex:1;" id="swapGrid">
+            <label class="swap-slot" id="swapSlot_loader_bar_bg.png"><span class="swap-name" id="swapLabel_loader_bar_bg.png">loader_bar_bg</span><input type="file" accept="image/png" data-swap="loader_bar_bg.png" onchange="handleSwapUpload(this)"><span class="swap-dot" id="swapDot_loader_bar_bg.png"></span></label>
+            <label class="swap-slot" id="swapSlot_loader_glow.png"><span class="swap-name" id="swapLabel_loader_glow.png">loader_glow</span><input type="file" accept="image/png" data-swap="loader_glow.png" onchange="handleSwapUpload(this)"><span class="swap-dot" id="swapDot_loader_glow.png"></span></label>
+            <label class="swap-slot" id="swapSlot_loader_particle.png"><span class="swap-name" id="swapLabel_loader_particle.png">loader_particle</span><input type="file" accept="image/png" data-swap="loader_particle.png" onchange="handleSwapUpload(this)"><span class="swap-dot" id="swapDot_loader_particle.png"></span></label>
+            <label class="swap-slot" id="swapSlot_popup_body.png"><span class="swap-name" id="swapLabel_popup_body.png">popup_body</span><input type="file" accept="image/png" data-swap="popup_body.png" onchange="handleSwapUpload(this)"><span class="swap-dot" id="swapDot_popup_body.png"></span></label>
+            <label class="swap-slot" id="swapSlot_loader_logo_bg.png"><span class="swap-name" id="swapLabel_loader_logo_bg.png">loader_logo_bg</span><input type="file" accept="image/png" data-swap="loader_logo_bg.png" onchange="handleSwapUpload(this)"><span class="swap-dot" id="swapDot_loader_logo_bg.png"></span></label>
+            <label class="swap-slot" id="swapSlot_popup_particle.png"><span class="swap-name" id="swapLabel_popup_particle.png">popup_particle</span><input type="file" accept="image/png" data-swap="popup_particle.png" onchange="handleSwapUpload(this)"><span class="swap-dot" id="swapDot_popup_particle.png"></span></label>
+            <label class="swap-slot" id="swapSlot_loader_background.png"><span class="swap-name" id="swapLabel_loader_background.png">loader_background</span><input type="file" accept="image/png" data-swap="loader_background.png" onchange="handleSwapUpload(this)"><span class="swap-dot" id="swapDot_loader_background.png"></span></label>
+            <label class="swap-slot" id="swapSlot_banner_content.png"><span class="swap-name" id="swapLabel_banner_content.png">banner_content</span><input type="file" accept="image/png" data-swap="banner_content.png" onchange="handleSwapUpload(this)"><span class="swap-dot" id="swapDot_banner_content.png"></span></label>
+            <label class="swap-slot" id="swapSlot_loader_logo.png"><span class="swap-name" id="swapLabel_loader_logo.png">loader_logo</span><input type="file" accept="image/png" data-swap="loader_logo.png" onchange="handleSwapUpload(this)"><span class="swap-dot" id="swapDot_loader_logo.png"></span></label>
+            <label class="swap-slot" id="swapSlot_background.png"><span class="swap-name" id="swapLabel_background.png">background</span><input type="file" accept="image/png" data-swap="background.png" onchange="handleSwapUpload(this)"><span class="swap-dot" id="swapDot_background.png"></span></label>
+          </div>
+        </div>
+      </div>
+      <div class="gen-bottom">
+        <div class="gen-export-row">
+          <button class="btn btn-acc" onclick="startExport()" id="exportBtn">Export</button>
+          <span class="st" id="exportStatus"></span>
+        </div>
+        <div class="progress-bar-wrap" id="progressBar" style="display:none;"><div class="progress-fill" id="progressFill"></div></div>
+        <div class="progress-log" id="progressLog" style="display:none;"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</div><!-- /.app-main -->
+</div><!-- /.app -->
+
+<script>
+'use strict';
+// ═══════════════════════════════════════
+//  CONSTANTS & REGISTRY
+// ═══════════════════════════════════════
+const REGISTRY = [
+  {key:'player',      file:'player.webp',                w:590, h:590, frames:17, type:'player'},
+  {key:'gk_idle',     file:'goalkeeper_idle.webp',        w:918, h:360, frames:5,  type:'goalkeeper'},
+  {key:'gk_left',     file:'goalkeeper_left.webp',        w:918, h:360, frames:10, type:'goalkeeper'},
+  {key:'gk_right',    file:'goalkeeper_right.webp',       w:918, h:360, frames:10, type:'goalkeeper'},
+  {key:'gk_center',   file:'goalkeeper_center.webp',      w:918, h:360, frames:4,  type:'goalkeeper'},
+  {key:'gk_left_h',   file:'goalkeeper_left_high.webp',   w:918, h:360, frames:11, type:'goalkeeper'},
+  {key:'gk_right_h',  file:'goalkeeper_right_high.webp',  w:918, h:360, frames:11, type:'goalkeeper'},
+  {key:'gk_center_h', file:'goalkeeper_center_high.webp', w:918, h:360, frames:10, type:'goalkeeper'},
+  {key:'ball',        file:'ball.webp',                   w:61,  h:69,  frames:6,  type:'ball'},
+];
+const SWAP_SLOTS = [
+  'loader_bar_bg.png','loader_glow.png','loader_particle.png','popup_body.png',
+  'loader_logo_bg.png','popup_particle.png','loader_background.png','banner_content.png',
+  'loader_logo.png','background.png'
+];
+const REGION_COLORS = {shirt:'rgba(0,200,100,0.45)',socks:'rgba(60,140,255,0.45)',number:'rgba(255,160,0,0.45)',skin:'rgba(255,160,60,0.55)',shorts:'rgba(220,60,220,0.45)'};
+
+// ═══════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════
+const loadedAssets = {};
+const maskLib = {};
+let staticFiles = {};
+let presets = [];
+let currentPresetId = null;
+
+let me = {
+  key: null, frameIdx: 0, region: 'shirt',
+  tool: 'wand',
+  zoom: 1, panX: 0, panY: 0,
+  panning: false, panStartX: 0, panStartY: 0,
+  lassoPts: [], lassoing: false, lassoExclude: false,
+  brushing: false, brushHistPushed: false, brushExclude: false,
+  animPlaying: false, animIdx: 0, animRAF: null, animLast: 0, animAccum: 0,
+};
+
+let genBeforeFrames = null;
+let genAfterFrames = null;
+let genPreviewDurations = null;
+let genShowAfter = false;
+let genAnimRAF = null;
+let genAnimIdx = 0;
+let genAnimLast = 0;
+let genAnimFrames = null, genAnimDurs = null;
+
+const undoStack = [];
+const redoStack = [];
+const MAX_HISTORY = 40;
+const lockedRegions = new Set();
+let contrastBoostOn = false;
+
+// ═══════════════════════════════════════
+//  UNDO / REDO
+// ═══════════════════════════════════════
+function pushHistory() {
+  if (!me.key) return;
+  const mask = maskLib[me.key]?.[me.region]?.[me.frameIdx];
+  undoStack.push({key:me.key, region:me.region, frameIdx:me.frameIdx, mask:mask?new Uint8Array(mask):null});
+  if (undoStack.length > MAX_HISTORY) undoStack.shift();
+  redoStack.length = 0;
+  updateUndoRedo();
+}
+
+function doUndo() {
+  if (!undoStack.length) return;
+  const entry = undoStack.pop();
+  const cur = maskLib[entry.key]?.[entry.region]?.[entry.frameIdx];
+  redoStack.push({key:entry.key, region:entry.region, frameIdx:entry.frameIdx, mask:cur?new Uint8Array(cur):null});
+  if (!maskLib[entry.key]) initMaskLib(entry.key, loadedAssets[entry.key]?.frames.length||0);
+  maskLib[entry.key][entry.region][entry.frameIdx] = entry.mask?new Uint8Array(entry.mask):null;
+  if (entry.key !== me.key) { me.key = entry.key; initMaskEditor(entry.key); return; }
+  if (entry.region !== me.region) setRegion(entry.region);
+  if (entry.frameIdx !== me.frameIdx) loadMeFrame(entry.frameIdx);
+  drawMeOverlay(); updateRegionDots(); renderAssetGrid();
+  setSt('editorStatus','Undo','ok');
+  updateUndoRedo();
+}
+
+function doRedo() {
+  if (!redoStack.length) return;
+  const entry = redoStack.pop();
+  const cur = maskLib[entry.key]?.[entry.region]?.[entry.frameIdx];
+  undoStack.push({key:entry.key, region:entry.region, frameIdx:entry.frameIdx, mask:cur?new Uint8Array(cur):null});
+  if (!maskLib[entry.key]) initMaskLib(entry.key, loadedAssets[entry.key]?.frames.length||0);
+  maskLib[entry.key][entry.region][entry.frameIdx] = entry.mask?new Uint8Array(entry.mask):null;
+  if (entry.key !== me.key) { me.key = entry.key; initMaskEditor(entry.key); return; }
+  if (entry.region !== me.region) setRegion(entry.region);
+  if (entry.frameIdx !== me.frameIdx) loadMeFrame(entry.frameIdx);
+  drawMeOverlay(); updateRegionDots(); renderAssetGrid();
+  setSt('editorStatus','Redo','ok');
+  updateUndoRedo();
+}
+
+function updateUndoRedo() {
+  const ub=document.getElementById('tbnUndo'), rb=document.getElementById('tbnRedo');
+  if(ub){ub.disabled=!undoStack.length;ub.style.opacity=undoStack.length?'':'0.4';}
+  if(rb){rb.disabled=!redoStack.length;rb.style.opacity=redoStack.length?'':'0.4';}
+}
+
+function doSmooth() {
+  if (!me.key) return;
+  if (isRegionLocked()) { setSt('editorStatus','Region locked 🔒','err'); return; }
+  const mc=document.getElementById('meCanvas');
+  const w=mc.width, h=mc.height;
+  if (!maskLib[me.key][me.region][me.frameIdx]) { setSt('editorStatus','No mask on this frame','err'); return; }
+  pushHistory();
+  // Morphological open: erode 2 then dilate 2 — removes isolated speckles, smooths jagged edges
+  for (let i=0;i<2;i++) {
+    const m=maskLib[me.key][me.region][me.frameIdx], nx=new Uint8Array(m);
+    for(let y=0;y<h;y++) for(let x=0;x<w;x++){
+      if(!m[y*w+x]) continue;
+      if(x===0||x===w-1||y===0||y===h-1||!m[y*w+x-1]||!m[y*w+x+1]||!m[(y-1)*w+x]||!m[(y+1)*w+x]) nx[y*w+x]=0;
+    }
+    maskLib[me.key][me.region][me.frameIdx]=nx;
+  }
+  for (let i=0;i<2;i++) {
+    const m=maskLib[me.key][me.region][me.frameIdx], nx=new Uint8Array(m);
+    for(let y=0;y<h;y++) for(let x=0;x<w;x++){
+      if(m[y*w+x]) continue;
+      if((x>0&&m[y*w+x-1])||(x<w-1&&m[y*w+x+1])||(y>0&&m[(y-1)*w+x])||(y<h-1&&m[(y+1)*w+x])) nx[y*w+x]=1;
+    }
+    maskLib[me.key][me.region][me.frameIdx]=nx;
+  }
+  drawMeOverlay(); updateRegionDots();
+  setSt('editorStatus','Edges smoothed','ok');
+}
+
+// ═══════════════════════════════════════
+//  REGION LOCK
+// ═══════════════════════════════════════
+function toggleRegionLock(r, e) {
+  e.stopPropagation();
+  if (lockedRegions.has(r)) lockedRegions.delete(r); else lockedRegions.add(r);
+  const el = document.getElementById('rlock_'+r);
+  if (el) el.classList.toggle('locked', lockedRegions.has(r));
+}
+function isRegionLocked() { return lockedRegions.has(me.region); }
+
+// ═══════════════════════════════════════
+//  INVERT / FILL HOLES / GK PROPAGATE
+// ═══════════════════════════════════════
+function doInvert() {
+  if (!me.key) return;
+  if (isRegionLocked()) { setSt('editorStatus','Region locked 🔒','err'); return; }
+  const mc = document.getElementById('meCanvas');
+  const w = mc.width, h = mc.height;
+  pushHistory();
+  if (!maskLib[me.key][me.region][me.frameIdx])
+    maskLib[me.key][me.region][me.frameIdx] = new Uint8Array(w * h);
+  const mask = maskLib[me.key][me.region][me.frameIdx];
+  for (let i = 0; i < mask.length; i++) mask[i] = mask[i] ? 0 : 1;
+  drawMeOverlay(); updateRegionDots(); renderAssetGrid();
+  setSt('editorStatus','Selection inverted','ok');
+}
+
+function doFillHoles() {
+  if (!me.key) return;
+  if (isRegionLocked()) { setSt('editorStatus','Region locked 🔒','err'); return; }
+  const mc = document.getElementById('meCanvas');
+  const w = mc.width, h = mc.height;
+  if (!maskLib[me.key][me.region][me.frameIdx]) { setSt('editorStatus','No mask on this frame','err'); return; }
+  pushHistory();
+  const mask = maskLib[me.key][me.region][me.frameIdx];
+  const outside = new Uint8Array(w * h);
+  const queue = [];
+  const seed = (idx) => { if (!outside[idx] && !mask[idx]) { outside[idx]=1; queue.push(idx); } };
+  for (let x=0;x<w;x++) { seed(x); seed((h-1)*w+x); }
+  for (let y=1;y<h-1;y++) { seed(y*w); seed(y*w+w-1); }
+  while (queue.length) {
+    const idx = queue.pop();
+    const px = idx%w, py = (idx/w)|0;
+    if (px>0   && !mask[idx-1] && !outside[idx-1]) { outside[idx-1]=1; queue.push(idx-1); }
+    if (px<w-1 && !mask[idx+1] && !outside[idx+1]) { outside[idx+1]=1; queue.push(idx+1); }
+    if (py>0   && !mask[idx-w] && !outside[idx-w]) { outside[idx-w]=1; queue.push(idx-w); }
+    if (py<h-1 && !mask[idx+w] && !outside[idx+w]) { outside[idx+w]=1; queue.push(idx+w); }
+  }
+  let filled = 0;
+  for (let i=0;i<w*h;i++) { if (!mask[i]&&!outside[i]) { mask[i]=1; filled++; } }
+  drawMeOverlay(); updateRegionDots();
+  setSt('editorStatus',`Filled ${filled}px in holes`,'ok');
+}
+
+function propagateToAllGK() {
+  if (!me.key) return;
+  const def = REGISTRY.find(d=>d.key===me.key);
+  if (!def || def.type !== 'goalkeeper') { setSt('editorStatus','Must be on a goalkeeper asset','err'); return; }
+  const srcMask = maskLib[me.key]?.[me.region]?.[me.frameIdx];
+  if (!srcMask) { setSt('editorStatus','No mask on this frame to propagate','err'); return; }
+  const allGkDefs = REGISTRY.filter(d=>d.type==='goalkeeper');
+  if (!confirm(`Broadcast ${me.region} mask (current frame) to ALL frames of all ${allGkDefs.length} goalkeeper assets?\nThis stamps your current frame's mask onto every frame of every GK — you can edit individual frames after.`)) return;
+  let totalFrames = 0;
+  for (const gkDef of allGkDefs) {
+    const gkKey = gkDef.key;
+    const targetFC = loadedAssets[gkKey]?.frames.length || gkDef.frames;
+    if (!maskLib[gkKey]) initMaskLib(gkKey, targetFC);
+    for (let i=0; i<targetFC; i++) {
+      maskLib[gkKey][me.region][i] = new Uint8Array(srcMask);
+      totalFrames++;
+    }
+  }
+  updateRegionDots(); renderAssetGrid();
+  setSt('editorStatus',`${me.region} stamped → ${allGkDefs.length} GK assets (${totalFrames} frames total)`,'ok');
+}
+
+// ═══════════════════════════════════════
+//  T-REX ERROR
+// ═══════════════════════════════════════
+function showTrexError(missing) {
+  const el = document.getElementById('trexMissing');
+  if (el) el.innerHTML = '<b>Missing files:</b><br>' + missing.join('<br>');
+  const modal = document.getElementById('trexModal');
+  if (modal) modal.classList.remove('hidden');
+}
+
+// ═══════════════════════════════════════
+//  CONTRAST BOOST / OVERLAY OPACITY
+// ═══════════════════════════════════════
+function toggleContrast() {
+  contrastBoostOn = !contrastBoostOn;
+  document.getElementById('meCanvasStack').style.filter = contrastBoostOn ? 'contrast(2) brightness(1.1)' : '';
+  const btn = document.getElementById('tbnContrast');
+  if (btn) btn.classList.toggle('active', contrastBoostOn);
+}
+
+function getOverlayOpacity() {
+  const sl = document.getElementById('meOpacitySlider');
+  return sl ? parseInt(sl.value) : 45;
+}
+
+// ═══════════════════════════════════════
+//  WEBP DECODER
+// ═══════════════════════════════════════
+async function decodeWebP(file) {
+  const frames = [], durations = [];
+  try {
+    if (typeof ImageDecoder !== 'undefined') {
+      const buf = await file.arrayBuffer();
+      const dec = new ImageDecoder({data: buf, type: 'image/webp'});
+      await dec.tracks.ready;
+      try { await dec.completed; } catch(e) {}
+      const count = dec.tracks.selectedTrack.frameCount || 1;
+      for (let i = 0; i < count; i++) {
+        try {
+          const r = await dec.decode({frameIndex: i});
+          const vf = r.image;
+          const c = document.createElement('canvas');
+          c.width = vf.displayWidth; c.height = vf.displayHeight;
+          c.getContext('2d').drawImage(vf, 0, 0);
+          durations.push(vf.duration ? vf.duration / 1000 : 100);
+          vf.close();
+          frames.push(c);
+        } catch(e) { break; }
+      }
+      dec.close();
+    }
+    if (!frames.length) {
+      const url = URL.createObjectURL(file);
+      try {
+        const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
+        const c = document.createElement('canvas');
+        c.width = img.naturalWidth; c.height = img.naturalHeight;
+        c.getContext('2d').drawImage(img, 0, 0);
+        frames.push(c); durations.push(100);
+      } finally { URL.revokeObjectURL(url); }
+    }
+  } catch(e) { throw e; }
+  if (!frames.length) throw new Error('No frames decoded');
+  return {frames, durations};
+}
+
+// ═══════════════════════════════════════
+//  WEBP ENCODER
+// ═══════════════════════════════════════
+function s2b(s) { return new Uint8Array([...s].map(c => c.charCodeAt(0))); }
+function wU32(b, o, v) { b[o]=v&0xFF; b[o+1]=(v>>8)&0xFF; b[o+2]=(v>>16)&0xFF; b[o+3]=(v>>24)&0xFF; }
+function wU24(b, o, v) { b[o]=v&0xFF; b[o+1]=(v>>8)&0xFF; b[o+2]=(v>>16)&0xFF; }
+function rU32(b, o) { return (b[o]|(b[o+1]<<8)|(b[o+2]<<16)|(b[o+3]<<24))>>>0; }
+function rFCC(b, o) { return String.fromCharCode(b[o],b[o+1],b[o+2],b[o+3]); }
+
+function mkChunk(tag, payload) {
+  const sz = payload.length, pad = sz%2?sz+1:sz;
+  const c = new Uint8Array(8+pad);
+  c.set(s2b(tag)); wU32(c,4,sz); c.set(payload,8); return c;
+}
+
+function extractFrameData(wb) {
+  if (rFCC(wb,0)!=='RIFF'||rFCC(wb,8)!=='WEBP') return {data:wb,hasAlpha:false};
+  const chunks = []; let off = 12, hasAlpha = false;
+  while (off+8 <= wb.length) {
+    const tag = rFCC(wb,off), sz = rU32(wb,off+4);
+    const end = off+8+sz+(sz%2?1:0);
+    if (tag==='VP8 '||tag==='VP8L'||tag==='ALPH') {
+      chunks.push(wb.slice(off, Math.min(end,wb.length)));
+      if (tag==='ALPH'||tag==='VP8L') hasAlpha = true;
+    }
+    off = end;
+  }
+  if (!chunks.length) return {data:wb.slice(12),hasAlpha:false};
+  const total = chunks.reduce((s,c)=>s+c.length,0);
+  const res = new Uint8Array(total); let pos = 0;
+  for (const c of chunks) { res.set(c,pos); pos+=c.length; }
+  return {data:res,hasAlpha};
+}
+
+async function encodeAnimatedWebP(frames, durations, quality=0.88) {
+  const frameBytes = [];
+  for (let i = 0; i < frames.length; i++) {
+    const blob = await new Promise((res,rej) => frames[i].toBlob(b => b?res(b):rej(new Error('toBlob failed')), 'image/webp', quality));
+    frameBytes.push(new Uint8Array(await blob.arrayBuffer()));
+  }
+  const w = frames[0].width, h = frames[0].height;
+  const fd = frameBytes.map(fb => extractFrameData(fb));
+  const anyAlpha = fd.some(f => f.hasAlpha);
+
+  const vp8xP = new Uint8Array(10);
+  vp8xP[0] = 0x02 | (anyAlpha ? 0x10 : 0);
+  wU24(vp8xP,4,w-1); wU24(vp8xP,7,h-1);
+  const vp8xC = mkChunk('VP8X', vp8xP);
+  const animC = mkChunk('ANIM', new Uint8Array(6));
+
+  const anmfChunks = fd.map((f,i) => {
+    const dur = Math.max(1, Math.round(durations[i]||100));
+    const p = new Uint8Array(16+f.data.length);
+    wU24(p,0,0); wU24(p,3,0); wU24(p,6,w-1); wU24(p,9,h-1);
+    wU24(p,12,dur); p[15]=0x02; p.set(f.data,16);
+    return mkChunk('ANMF',p);
+  });
+
+  let bodySize = 4+vp8xC.length+animC.length;
+  for (const c of anmfChunks) bodySize += c.length;
+  const out = new Uint8Array(8+bodySize); let off = 0;
+  out.set(s2b('RIFF'),off); off+=4; wU32(out,off,bodySize); off+=4;
+  out.set(s2b('WEBP'),off); off+=4;
+  out.set(vp8xC,off); off+=vp8xC.length;
+  out.set(animC,off); off+=animC.length;
+  for (const c of anmfChunks) { out.set(c,off); off+=c.length; }
+  return new Blob([out], {type:'image/webp'});
+}
+
+// ═══════════════════════════════════════
+//  ASSET LOADING
+// ═══════════════════════════════════════
+document.getElementById('folderInput').addEventListener('change', async function(e) {
+  const files = Array.from(e.target.files||[]);
+  if (!files.length) return;
+  setSt('folderStatus','Loading…');
+  const byName = {};
+  for (const f of files) {
+    if (f.webkitRelativePath.includes('__MACOSX') || f.name.startsWith('._')) continue;
+    byName[f.name.toLowerCase()] = f;
+  }
+  for (const [name, file] of Object.entries(byName)) {
+    if (!name.endsWith('.webp')) staticFiles[name] = file;
+  }
+  let loaded = 0;
+  for (const def of REGISTRY) {
+    const f = byName[def.file.toLowerCase()];
+    if (!f) continue;
+    try {
+      const res = await decodeWebP(f);
+      loadedAssets[def.key] = res;
+      if (!maskLib[def.key]) initMaskLib(def.key, res.frames.length);
+      loaded++;
+    } catch(err) { console.error(`Failed ${def.file}:`, err); }
+  }
+  setSt('folderStatus', `${loaded}/${REGISTRY.length} assets`, loaded>0?'ok':'err');
+  updateChips();
+  renderAssetGrid();
+  renderGenStatus();
+  renderGenCasinoList();
+  e.target.value = '';
+});
+
+function setSt(id, msg, type='') {
+  const el=document.getElementById(id); if(!el) return;
+  el.textContent=msg; el.className=(id==='maskStatus'||id==='presetStatus')?'lp-status'+(type?' '+type:''):'st'+(type?' '+type:'');
+}
+
+function initMaskLib(key, frameCount) {
+  maskLib[key] = {
+    shirt:   new Array(frameCount).fill(null),
+    socks:   new Array(frameCount).fill(null),
+    number:  new Array(frameCount).fill(null),
+    skin:    new Array(frameCount).fill(null),
+    shorts:  new Array(frameCount).fill(null),
+    anchors: new Array(frameCount).fill(null),
+  };
+}
+
+// ═══════════════════════════════════════
+//  MASK LIBRARY SAVE / LOAD
+// ═══════════════════════════════════════
+function saveMaskLibrary(filter='all') {
+  const out = {version:2};
+  for (const key of Object.keys(maskLib)) {
+    const def = REGISTRY.find(d=>d.key===key);
+    if (!def) continue;
+    if (filter==='player'    && def.type!=='player' && def.type!=='ball') continue;
+    if (filter==='goalkeeper'&& def.type!=='goalkeeper') continue;
+    const ml = maskLib[key];
+    out[key] = {};
+    for (const region of ['shirt','socks','number','skin','shorts']) {
+      out[key][region] = (ml[region]||[]).map(m => {
+        if (!m) return null;
+        let bin = ''; for (let i=0;i<m.length;i++) bin+=String.fromCharCode(m[i]);
+        return btoa(bin);
+      });
+    }
+    out[key].anchors = ml.anchors||[];
+  }
+  const fname = filter==='player'?'mask_player.json':filter==='goalkeeper'?'mask_goalkeeper.json':'mask_library.json';
+  dlBlob(new Blob([JSON.stringify(out)], {type:'application/json'}), fname);
+  setSt('maskStatus',`Saved ${fname}`,'ok');
+}
+
+async function loadMaskLibraryFile(file, filter='all') {
+  if (!file) return;
+  try {
+    const data = JSON.parse(await file.text());
+    for (const key of Object.keys(data)) {
+      if (key==='version') continue;
+      const entry = data[key];
+      const def = REGISTRY.find(d=>d.key===key);
+      if (!def) continue;
+      if (filter==='player'    && def.type!=='player' && def.type!=='ball') continue;
+      if (filter==='goalkeeper'&& def.type!=='goalkeeper') continue;
+      const frameCount = entry.shirt?.length || def.frames;
+      if (!maskLib[key]) initMaskLib(key, frameCount);
+      for (const region of ['shirt','socks','number','skin','shorts']) {
+        if (!entry[region]) continue;
+        entry[region].forEach((b64,fi) => {
+          if (!b64) { maskLib[key][region][fi]=null; return; }
+          const bin=atob(b64), arr=new Uint8Array(bin.length);
+          for(let i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
+          maskLib[key][region][fi]=arr;
+        });
+      }
+      if (entry.anchors) maskLib[key].anchors = entry.anchors;
+    }
+    const label = filter==='player'?'player masks':filter==='goalkeeper'?'GK masks':'mask library';
+    setSt('maskStatus',`Loaded ${label}`,'ok');
+    updateChips(); renderAssetGrid();
+    if (me.key) drawMeOverlay();
+  } catch(e) { setSt('maskStatus','Error: '+e.message,'err'); }
+}
+
+function getMaskCoverage(key) {
+  if (!maskLib[key]) return {shirt:0,socks:0,total:0,needed:0};
+  const def = REGISTRY.find(d=>d.key===key);
+  const n = def?.frames||0;
+  const shirt = maskLib[key].shirt.filter(m=>m&&m.some(v=>v>0)).length;
+  const socks = maskLib[key].socks.filter(m=>m&&m.some(v=>v>0)).length;
+  return {shirt, socks, total:shirt+socks, needed:n*2};
+}
+
+// ═══════════════════════════════════════
+//  ASSET GRID
+// ═══════════════════════════════════════
+function renderAssetGrid() {
+  const el = document.getElementById('assetGrid');
+  el.innerHTML = '';
+  for (const def of REGISTRY) {
+    const loaded = !!loadedAssets[def.key];
+    const cov = getMaskCoverage(def.key);
+    const div = document.createElement('div');
+    div.className = 'asset-item' + (me.key===def.key?' active':'');
+    div.onclick = () => initMaskEditor(def.key);
+
+    const thumb = document.createElement('canvas');
+    thumb.className = 'asset-thumb';
+    thumb.width = 38; thumb.height = 26;
+    if (loaded) {
+      const f = loadedAssets[def.key].frames[0];
+      const scale = Math.min(38/f.width, 26/f.height);
+      const tw = Math.round(f.width*scale), th = Math.round(f.height*scale);
+      thumb.getContext('2d').drawImage(f, Math.round((38-tw)/2), Math.round((26-th)/2), tw, th);
+    }
+    div.appendChild(thumb);
+
+    const info = document.createElement('div');
+    info.className = 'asset-info';
+    info.innerHTML = `<div class="asset-name" title="${def.file}">${def.file.replace('.webp','')}</div>
+      <div class="asset-meta">${loaded?loadedAssets[def.key].frames.length+'fr':'not loaded'}</div>`;
+    div.appendChild(info);
+
+    const dots = document.createElement('div');
+    dots.className = 'asset-dots';
+    const nFrames = REGISTRY.find(d=>d.key===def.key)?.frames||0;
+    const sd = document.createElement('div');
+    sd.className = 'dot'+(cov.shirt>0?(cov.shirt===nFrames?' done':' partial'):'');
+    sd.title = `Shirt: ${cov.shirt}/${nFrames} frames`;
+    const kd = document.createElement('div');
+    kd.className = 'dot'+(cov.socks>0?(cov.socks===nFrames?' done':' partial'):'');
+    kd.title = `Socks: ${cov.socks}/${nFrames} frames`;
+    dots.appendChild(sd); dots.appendChild(kd);
+    div.appendChild(dots);
+    el.appendChild(div);
+  }
+}
+
+// ═══════════════════════════════════════
+//  MASK EDITOR — INIT
+// ═══════════════════════════════════════
+function initMaskEditor(key) {
+  const def = REGISTRY.find(d=>d.key===key);
+  if (!def) return;
+  if (!loadedAssets[key]) { setSt('editorStatus','Asset not loaded','err'); return; }
+
+  me.key = key;
+  me.frameIdx = 0;
+  me.zoom = 1; me.panX = 0; me.panY = 0;
+
+  document.getElementById('rtabNumber').style.display = def.type==='player'?'':'none';
+  document.getElementById('tbnAnchor').style.display = def.type==='player'?'':'none';
+
+  document.getElementById('editorEmpty').classList.add('hidden');
+  document.getElementById('editorActive').classList.remove('hidden');
+
+  renderAssetGrid();
+  buildMeStrip();
+  loadMeFrame(0);
+  startMeAnim();
+}
+
+function setRegion(r) {
+  me.region = r;
+  ['shirt','socks','number','skin','shorts'].forEach(rr => {
+    const el = document.getElementById('rtab'+cap(rr));
+    if (el) el.classList.toggle('active', rr===r);
+  });
+  if (r==='number') meTool('anchor');
+  else if (me.tool==='anchor') meTool('wand');
+  drawMeOverlay();
+}
+
+function cap(s) { return s.charAt(0).toUpperCase()+s.slice(1); }
+
+// ═══════════════════════════════════════
+//  MASK EDITOR — FRAME NAV
+// ═══════════════════════════════════════
+function buildMeStrip() {
+  const strip = document.getElementById('meStrip');
+  strip.innerHTML = '';
+  if (!me.key) return;
+  const frames = loadedAssets[me.key].frames;
+  frames.forEach((f, i) => {
+    const th = 32, tw = Math.round(th * f.width / f.height);
+    const c = document.createElement('canvas');
+    c.width = tw; c.height = th;
+    c.className = 'fs-thumb' + (i===me.frameIdx?' active':'');
+    c.getContext('2d').drawImage(f,0,0,tw,th);
+    c.addEventListener('click', () => loadMeFrame(i));
+    strip.appendChild(c);
+  });
+}
+
+function updateMeStrip() {
+  document.querySelectorAll('#meStrip .fs-thumb').forEach((t,i) => t.classList.toggle('active', i===me.frameIdx));
+  const active = document.querySelector('#meStrip .fs-thumb.active');
+  if (active) active.scrollIntoView({block:'nearest',inline:'nearest'});
+}
+
+function loadMeFrame(idx) {
+  if (!me.key) return;
+  const frames = loadedAssets[me.key].frames;
+  me.frameIdx = Math.max(0, Math.min(idx, frames.length-1));
+  const f = frames[me.frameIdx];
+
+  const mc = document.getElementById('meCanvas');
+  mc.width = f.width; mc.height = f.height;
+  mc.getContext('2d').drawImage(f,0,0);
+
+  const mo = document.getElementById('meOverlay');
+  mo.width = f.width; mo.height = f.height;
+
+  document.getElementById('meFrameLabel').textContent = `Frame ${me.frameIdx+1}/${frames.length}`;
+  updateMeStrip();
+  meFitCanvas();
+  meApplyTransform();
+  drawMeOverlay();
+  updateRegionDots();
+  setSt('editorStatus','');
+}
+
+function meFitCanvas() {
+  const inner = document.getElementById('meCanvasInner');
+  const mc = document.getElementById('meCanvas');
+  if (!mc.width) return;
+  const ww = inner.clientWidth||600, wh = inner.clientHeight||400;
+  me.zoom = Math.max(0.2, Math.min(ww/mc.width, wh/mc.height)*0.88);
+  me.panX = 0; me.panY = 0;
+}
+
+function meApplyTransform() {
+  document.getElementById('meCanvasStack').style.transform = `translate(${me.panX}px,${me.panY}px) scale(${me.zoom})`;
+  document.getElementById('meZoomLabel').textContent = Math.round(me.zoom*100)+'%';
+}
+
+function meZoomAdj(d) {
+  const old=me.zoom; me.zoom=Math.min(8,Math.max(0.2,me.zoom+d));
+  const r=me.zoom/old; me.panX*=r; me.panY*=r;
+  meApplyTransform();
+}
+
+// ═══════════════════════════════════════
+//  MASK EDITOR — OVERLAY
+// ═══════════════════════════════════════
+function drawMeOverlay() {
+  if (!me.key) return;
+  const mc = document.getElementById('meCanvas');
+  const mo = document.getElementById('meOverlay');
+  if (!mc.width) return;
+  mo.width = mc.width; mo.height = mc.height;
+  const ctx = mo.getContext('2d');
+  ctx.clearRect(0,0,mo.width,mo.height);
+
+  const order = ['shirt','socks','number','skin','shorts'].filter(r=>r!==me.region).concat([me.region]);
+  for (const region of order) {
+    const mask = maskLib[me.key]?.[region]?.[me.frameIdx];
+    if (!mask) continue;
+    const col = REGION_COLORS[region];
+    const id = ctx.createImageData(mo.width, mo.height);
+    const [r,g,b,a] = parseRgba(col);
+    const opScale = getOverlayOpacity() / 45;
+    const scaledA = Math.min(255, Math.round(a * opScale));
+    for (let i=0;i<mask.length;i++) {
+      if (!mask[i]) continue;
+      id.data[i*4]=r; id.data[i*4+1]=g; id.data[i*4+2]=b; id.data[i*4+3]=scaledA;
+    }
+    ctx.putImageData(id,0,0);
+  }
+
+  const anchor = maskLib[me.key]?.anchors?.[me.frameIdx];
+  if (anchor) {
+    ctx.save();
+    ctx.strokeStyle='rgba(255,160,0,0.9)';ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(anchor.x,anchor.y,12,0,Math.PI*2);ctx.stroke();
+    ctx.fillStyle='rgba(255,160,0,0.9)';ctx.font='bold 14px Arial';
+    ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('#',anchor.x,anchor.y);
+    ctx.restore();
+  }
+}
+
+function parseRgba(s) {
+  const m=s.match(/rgba\((\d+),(\d+),(\d+),([\d.]+)\)/);
+  return m?[+m[1],+m[2],+m[3],Math.round(+m[4]*255)]:[0,0,0,100];
+}
+
+function updateRegionDots() {
+  if (!me.key) return;
+  for (const r of ['shirt','socks','number','skin','shorts']) {
+    const masks = maskLib[me.key]?.[r]||[];
+    const hasSome = masks.some(m=>m&&m.some(v=>v>0));
+    const dot = document.getElementById('rdot'+cap(r));
+    if (dot) dot.className='rtab-dot'+(hasSome?' has-mask':'');
+  }
+}
+
+// ═══════════════════════════════════════
+//  MASK EDITOR — TOOLS
+// ═══════════════════════════════════════
+function meGetCoords(e) {
+  const inner = document.getElementById('meCanvasInner');
+  const ir = inner.getBoundingClientRect();
+  const mc = document.getElementById('meCanvas');
+  const cx=mc.width/2, cy=mc.height/2;
+  const sx=e.clientX-(ir.left+ir.width/2)-me.panX;
+  const sy=e.clientY-(ir.top+ir.height/2)-me.panY;
+  return {
+    x:Math.max(0,Math.min(mc.width-1,Math.round(sx/me.zoom+cx))),
+    y:Math.max(0,Math.min(mc.height-1,Math.round(sy/me.zoom+cy))),
+  };
+}
+
+function meTool(t) {
+  me.tool = t;
+  const map = {lasso:'tbnLasso', wand:'tbnWand', range:'tbnRange', anchor:'tbnAnchor', brush:'tbnBrush'};
+  for (const [tool, id] of Object.entries(map)) {
+    const btn = document.getElementById(id);
+    if (btn) btn.classList.toggle('active', tool===t);
+  }
+  const wrap = document.getElementById('meCanvasWrap');
+  if (wrap) wrap.style.cursor = t==='brush' ? 'cell' : 'crosshair';
+}
+
+// ── Brush tool ──
+function brushPaint(cx, cy, exclude) {
+  if (!me.key) return;
+  if (isRegionLocked()) return;
+  const mc = document.getElementById('meCanvas');
+  const w = mc.width, h = mc.height;
+  const r = parseInt(document.getElementById('meBrushSize')?.value || 5);
+  if (!maskLib[me.key]) initMaskLib(me.key, loadedAssets[me.key].frames.length);
+  if (!maskLib[me.key][me.region][me.frameIdx])
+    maskLib[me.key][me.region][me.frameIdx] = new Uint8Array(w * h);
+  const mask = maskLib[me.key][me.region][me.frameIdx];
+  const x0 = Math.max(0, cx - r), x1 = Math.min(w - 1, cx + r);
+  const y0 = Math.max(0, cy - r), y1 = Math.min(h - 1, cy + r);
+  const r2 = r * r;
+  for (let y = y0; y <= y1; y++) {
+    for (let x = x0; x <= x1; x++) {
+      if ((x-cx)*(x-cx) + (y-cy)*(y-cy) <= r2)
+        mask[y*w+x] = exclude ? 0 : 1;
+    }
+  }
+  drawMeOverlay();
+  updateRegionDots();
+  renderAssetGrid();
+}
+
+const wrap = document.getElementById('meCanvasWrap');
+
+wrap.addEventListener('mousedown', e => {
+  if (e.button===1||e.button===2) {
+    e.preventDefault();
+    me.panning=true; me.panStartX=e.clientX-me.panX; me.panStartY=e.clientY-me.panY;
+    wrap.style.cursor='grabbing'; return;
+  }
+  if (!me.key) return;
+  const p = meGetCoords(e);
+
+  if (me.tool==='anchor') {
+    if (!maskLib[me.key]) initMaskLib(me.key, loadedAssets[me.key].frames.length);
+    maskLib[me.key].anchors[me.frameIdx] = {x:p.x,y:p.y};
+    drawMeOverlay();
+    setSt('editorStatus',`Anchor set: (${p.x},${p.y})`,'ok');
+    return;
+  }
+
+  if (me.tool==='wand') {
+    if (!maskLib[me.key]) initMaskLib(me.key, loadedAssets[me.key].frames.length);
+    floodFillSelect(p.x, p.y, e.altKey, e.shiftKey);
+    return;
+  }
+
+  if (me.tool==='range') {
+    if (!maskLib[me.key]) initMaskLib(me.key, loadedAssets[me.key].frames.length);
+    colorRangeSelect(p.x, p.y, e.altKey, e.shiftKey);
+    return;
+  }
+
+  if (me.tool==='lasso') {
+    me.lassoing=true; me.lassoExclude=e.altKey; me.lassoPts=[p];
+  }
+
+  if (me.tool==='brush') {
+    me.brushing=true; me.brushHistPushed=false; me.brushExclude=e.altKey;
+    pushHistory(); me.brushHistPushed=true;
+    brushPaint(p.x, p.y, me.brushExclude);
+  }
+});
+
+wrap.addEventListener('mousemove', e => {
+  if (me.panning) { me.panX=e.clientX-me.panStartX; me.panY=e.clientY-me.panStartY; meApplyTransform(); return; }
+  if (me.lassoing) {
+    const p=meGetCoords(e);
+    const last=me.lassoPts[me.lassoPts.length-1];
+    if (Math.abs(p.x-last.x)+Math.abs(p.y-last.y)>=1) { me.lassoPts.push(p); drawLassoPath(); }
+  }
+  if (me.brushing) {
+    const p=meGetCoords(e);
+    brushPaint(p.x, p.y, me.brushExclude);
+  }
+});
+
+wrap.addEventListener('mouseup', e => {
+  if (me.panning) { me.panning=false; wrap.style.cursor='crosshair'; return; }
+  if (me.lassoing) { me.lassoing=false; finalizeLasso(); }
+  if (me.brushing) {
+    me.brushing=false; me.brushHistPushed=false;
+    setSt('editorStatus','Brush stroke applied','ok');
+  }
+});
+
+wrap.addEventListener('mouseleave', e => {
+  if (me.panning) { me.panning=false; wrap.style.cursor=''; }
+  if (me.lassoing) { me.lassoing=false; me.lassoPts=[]; drawMeOverlay(); }
+  if (me.brushing) { me.brushing=false; me.brushHistPushed=false; }
+});
+
+wrap.addEventListener('wheel', e => {
+  e.preventDefault();
+  const old=me.zoom, d=e.deltaY<0?0.15:-0.15;
+  me.zoom=Math.min(8,Math.max(0.2,me.zoom+d));
+  const rect=wrap.getBoundingClientRect();
+  const cx=e.clientX-rect.left-rect.width/2, cy=e.clientY-rect.top-rect.height/2;
+  const r=me.zoom/old; me.panX=cx-(cx-me.panX)*r; me.panY=cy-(cy-me.panY)*r;
+  meApplyTransform();
+},{passive:false});
+
+wrap.addEventListener('contextmenu', e => e.preventDefault());
+
+// ── Lasso ──
+function drawLassoPath() {
+  const mo=document.getElementById('meOverlay');
+  const ctx=mo.getContext('2d');
+  drawMeOverlay();
+  if (me.lassoPts.length<2) return;
+  ctx.strokeStyle=me.lassoExclude?'#ff4455':'#4b1797';
+  ctx.lineWidth=1.5; ctx.setLineDash([4,3]);
+  ctx.beginPath(); ctx.moveTo(me.lassoPts[0].x,me.lassoPts[0].y);
+  for(let i=1;i<me.lassoPts.length;i++) ctx.lineTo(me.lassoPts[i].x,me.lassoPts[i].y);
+  ctx.closePath(); ctx.stroke();
+  ctx.fillStyle=me.lassoExclude?'rgba(255,68,85,0.12)':'rgba(75,23,151,0.12)';
+  ctx.fill(); ctx.setLineDash([]);
+}
+
+function finalizeLasso() {
+  if (me.lassoPts.length<3||!me.key) return;
+  if (isRegionLocked()) { me.lassoPts=[]; drawMeOverlay(); setSt('editorStatus','Region locked 🔒','err'); return; }
+  const mc=document.getElementById('meCanvas');
+  const w=mc.width, h=mc.height;
+  const pts=me.lassoPts, n=pts.length;
+  let minX=w,maxX=0,minY=h,maxY=0;
+  for(const p of pts){if(p.x<minX)minX=p.x;if(p.x>maxX)maxX=p.x;if(p.y<minY)minY=p.y;if(p.y>maxY)maxY=p.y;}
+  minX=Math.max(0,Math.floor(minX));maxX=Math.min(w-1,Math.ceil(maxX));
+  minY=Math.max(0,Math.floor(minY));maxY=Math.min(h-1,Math.ceil(maxY));
+
+  if (!maskLib[me.key]) initMaskLib(me.key, loadedAssets[me.key].frames.length);
+  const region=me.region;
+  if (!maskLib[me.key][region][me.frameIdx]) maskLib[me.key][region][me.frameIdx]=new Uint8Array(w*h);
+  const mask=maskLib[me.key][region][me.frameIdx];
+
+  pushHistory();
+  let count=0;
+  for(let y=minY;y<=maxY;y++) for(let x=minX;x<=maxX;x++){
+    let inside=false;
+    for(let i=0,j=n-1;i<n;j=i++){
+      const yi=pts[i].y,yj=pts[j].y,xi=pts[i].x,xj=pts[j].x;
+      if((yi>y)!==(yj>y)&&x<(xj-xi)*(y-yi)/(yj-yi)+xi) inside=!inside;
+    }
+    if(inside){ mask[y*w+x]=me.lassoExclude?0:1; count++; }
+  }
+  me.lassoPts=[];
+  drawMeOverlay(); updateRegionDots(); renderAssetGrid();
+  setSt('editorStatus',`${me.lassoExclude?'Excluded':'Included'} ${count}px on frame ${me.frameIdx+1}`,'ok');
+}
+
+// ── HSL color distance (perceptually accurate for fabric/clothing) ──
+function rgbToHsl(r, g, b) {
+  r/=255; g/=255; b/=255;
+  const mx=Math.max(r,g,b), mn=Math.min(r,g,b), l=(mx+mn)/2;
+  if (mx===mn) return [0,0,l*100];
+  const d=mx-mn, s=l>0.5?d/(2-mx-mn):d/(mx+mn);
+  let h;
+  if(mx===r) h=((g-b)/d+(g<b?6:0))/6;
+  else if(mx===g) h=((b-r)/d+2)/6;
+  else h=((r-g)/d+4)/6;
+  return [h*360, s*100, l*100];
+}
+
+function hslDist(r1,g1,b1, r2,g2,b2) {
+  const [h1,s1,l1]=rgbToHsl(r1,g1,b1);
+  const [h2,s2,l2]=rgbToHsl(r2,g2,b2);
+  let dh=Math.abs(h1-h2); if(dh>180) dh=360-dh;
+  // Hue weighted most (fabric color), lightness least (shadows are same color at different brightness)
+  return Math.sqrt((dh*0.6)**2 + (s1-s2)**2 + ((l1-l2)*0.4)**2);
+}
+
+// ── Magic Wand — 8-connected BFS flood fill using HSL distance ──
+function floodFillSelect(startX, startY, exclude, additive=false) {
+  if (!me.key) return;
+  if (isRegionLocked()) { setSt('editorStatus','Region locked 🔒','err'); return; }
+  const mc = document.getElementById('meCanvas');
+  const w = mc.width, h = mc.height;
+  const srcData = mc.getContext('2d').getImageData(0, 0, w, h).data;
+
+  const tol = parseInt(document.getElementById('meToleranceSlider')?.value || 40);
+
+  const si = (startY * w + startX) * 4;
+  const sr = srcData[si], sg = srcData[si+1], sb = srcData[si+2];
+
+  pushHistory();
+  if (!exclude && !additive) {
+    maskLib[me.key][me.region][me.frameIdx] = new Uint8Array(w * h);
+  } else if (!maskLib[me.key][me.region][me.frameIdx]) {
+    maskLib[me.key][me.region][me.frameIdx] = new Uint8Array(w * h);
+  }
+  const mask = maskLib[me.key][me.region][me.frameIdx];
+
+  const visited = new Uint8Array(w * h);
+  const startIdx = startY * w + startX;
+  visited[startIdx] = 1;
+  const queue = [startIdx];
+  let count = 0;
+
+  while (queue.length) {
+    const idx = queue.pop();
+    const px = idx % w, py = (idx / w) | 0;
+    const di = idx * 4;
+    if (srcData[di+3] <= 10) continue;
+    const dist = hslDist(srcData[di],srcData[di+1],srcData[di+2], sr,sg,sb);
+    if (dist > tol) continue;
+
+    mask[idx] = exclude ? 0 : 1;
+    count++;
+
+    // 8-connected neighbors
+    const left=px>0, right=px<w-1, up=py>0, down=py<h-1;
+    if (left        && !visited[idx-1])   { visited[idx-1]=1;   queue.push(idx-1); }
+    if (right       && !visited[idx+1])   { visited[idx+1]=1;   queue.push(idx+1); }
+    if (up          && !visited[idx-w])   { visited[idx-w]=1;   queue.push(idx-w); }
+    if (down        && !visited[idx+w])   { visited[idx+w]=1;   queue.push(idx+w); }
+    if (left  && up && !visited[idx-w-1]) { visited[idx-w-1]=1; queue.push(idx-w-1); }
+    if (right && up && !visited[idx-w+1]) { visited[idx-w+1]=1; queue.push(idx-w+1); }
+    if (left  && down && !visited[idx+w-1]) { visited[idx+w-1]=1; queue.push(idx+w-1); }
+    if (right && down && !visited[idx+w+1]) { visited[idx+w+1]=1; queue.push(idx+w+1); }
+  }
+
+  drawMeOverlay(); updateRegionDots(); renderAssetGrid();
+  setSt('editorStatus', `Wand: ${exclude?'removed':'added'} ${count}px`, 'ok');
+}
+
+// ── Color Range — global similar-color selection using HSL ──
+function colorRangeSelect(startX, startY, exclude, additive=false) {
+  if (!me.key) return;
+  if (isRegionLocked()) { setSt('editorStatus','Region locked 🔒','err'); return; }
+  const mc = document.getElementById('meCanvas');
+  const w = mc.width, h = mc.height;
+  const srcData = mc.getContext('2d').getImageData(0, 0, w, h).data;
+
+  const tol = parseInt(document.getElementById('meToleranceSlider')?.value || 40);
+
+  const si = (startY * w + startX) * 4;
+  const sr = srcData[si], sg = srcData[si+1], sb = srcData[si+2];
+
+  pushHistory();
+  if (!exclude && !additive) {
+    maskLib[me.key][me.region][me.frameIdx] = new Uint8Array(w * h);
+  } else if (!maskLib[me.key][me.region][me.frameIdx]) {
+    maskLib[me.key][me.region][me.frameIdx] = new Uint8Array(w * h);
+  }
+  const mask = maskLib[me.key][me.region][me.frameIdx];
+
+  let count = 0;
+  for (let i = 0; i < w * h; i++) {
+    const di = i * 4;
+    if (srcData[di+3] <= 10) continue;
+    if (hslDist(srcData[di],srcData[di+1],srcData[di+2], sr,sg,sb) <= tol) {
+      mask[i] = exclude ? 0 : 1; count++;
+    }
+  }
+
+  drawMeOverlay(); updateRegionDots(); renderAssetGrid();
+  setSt('editorStatus', `Range: ${exclude?'removed':'selected'} ${count}px`, 'ok');
+}
+
+// ── Grow / Shrink ──
+function doGrowMask() {
+  if (!me.key) return;
+  if (isRegionLocked()) { setSt('editorStatus','Region locked 🔒','err'); return; }
+  const n = parseInt(document.getElementById('growPx')?.value || 2);
+  const mc = document.getElementById('meCanvas');
+  const w = mc.width, h = mc.height;
+  if (!maskLib[me.key][me.region][me.frameIdx]) { setSt('editorStatus','No mask on this frame','err'); return; }
+  pushHistory();
+  for (let pass = 0; pass < n; pass++) {
+    const mask = maskLib[me.key][me.region][me.frameIdx];
+    const next = new Uint8Array(mask);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      if (mask[y*w+x]) continue;
+      if ((x>0 && mask[y*w+x-1]) || (x<w-1 && mask[y*w+x+1]) ||
+          (y>0 && mask[(y-1)*w+x]) || (y<h-1 && mask[(y+1)*w+x]))
+        next[y*w+x] = 1;
+    }
+    maskLib[me.key][me.region][me.frameIdx] = next;
+  }
+  drawMeOverlay(); updateRegionDots();
+  setSt('editorStatus', `Grew mask by ${n}px`, 'ok');
+}
+
+function doShrinkMask() {
+  if (!me.key) return;
+  if (isRegionLocked()) { setSt('editorStatus','Region locked 🔒','err'); return; }
+  const n = parseInt(document.getElementById('growPx')?.value || 2);
+  const mc = document.getElementById('meCanvas');
+  const w = mc.width, h = mc.height;
+  if (!maskLib[me.key][me.region][me.frameIdx]) { setSt('editorStatus','No mask on this frame','err'); return; }
+  pushHistory();
+  for (let pass = 0; pass < n; pass++) {
+    const mask = maskLib[me.key][me.region][me.frameIdx];
+    const next = new Uint8Array(mask);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      if (!mask[y*w+x]) continue;
+      if (x===0||x===w-1||y===0||y===h-1 ||
+          !mask[y*w+x-1]||!mask[y*w+x+1] ||
+          !mask[(y-1)*w+x]||!mask[(y+1)*w+x])
+        next[y*w+x] = 0;
+    }
+    maskLib[me.key][me.region][me.frameIdx] = next;
+  }
+  drawMeOverlay(); updateRegionDots();
+  setSt('editorStatus', `Shrunk mask by ${n}px`, 'ok');
+}
+
+// ── Frame copy ──
+function meClearFrame() {
+  if (!me.key) return;
+  if (isRegionLocked()) { setSt('editorStatus','Region locked 🔒','err'); return; }
+  pushHistory();
+  if (maskLib[me.key]?.[me.region]) maskLib[me.key][me.region][me.frameIdx]=null;
+  drawMeOverlay(); updateRegionDots(); renderAssetGrid();
+  setSt('editorStatus','Frame mask cleared');
+}
+
+function meClearAll() {
+  if (!me.key) return;
+  pushHistory();
+  for (const r of ['shirt','socks','number','skin','shorts']) {
+    if (maskLib[me.key]?.[r]) maskLib[me.key][r] = maskLib[me.key][r].map(()=>null);
+  }
+  if (maskLib[me.key]) maskLib[me.key].anchors = maskLib[me.key].anchors.map(()=>null);
+  drawMeOverlay(); updateRegionDots(); renderAssetGrid();
+  setSt('editorStatus','All masks cleared');
+}
+
+function meCopyToPrev() { meFrameCopy(me.frameIdx, me.frameIdx-1); }
+function meCopyToNext() { meFrameCopy(me.frameIdx, me.frameIdx+1); }
+
+function meCopyToAll() {
+  if (!me.key) return;
+  if (isRegionLocked()) { setSt('editorStatus','Region locked 🔒','err'); return; }
+  const src=maskLib[me.key]?.[me.region]?.[me.frameIdx];
+  const n=loadedAssets[me.key].frames.length;
+  for (let i=0;i<n;i++) {
+    if (i===me.frameIdx) continue;
+    if (!maskLib[me.key][me.region]) maskLib[me.key][me.region]=new Array(n).fill(null);
+    maskLib[me.key][me.region][i] = src?new Uint8Array(src):null;
+  }
+  updateRegionDots(); renderAssetGrid();
+  setSt('editorStatus',`Copied to all ${n} frames`,'ok');
+}
+
+function meFrameCopy(from, to) {
+  if (!me.key) return;
+  if (isRegionLocked()) { setSt('editorStatus','Region locked 🔒','err'); return; }
+  const n=loadedAssets[me.key].frames.length;
+  if (to<0||to>=n) return;
+  const src=maskLib[me.key]?.[me.region]?.[from];
+  if (!maskLib[me.key][me.region]) maskLib[me.key][me.region]=new Array(n).fill(null);
+  maskLib[me.key][me.region][to] = src?new Uint8Array(src):null;
+  setSt('editorStatus',`Copied to frame ${to+1}`,'ok');
+}
+
+// ═══════════════════════════════════════
+//  MASK EDITOR — ANIMATION PREVIEW
+// ═══════════════════════════════════════
+function startMeAnim() {
+  stopMeAnim();
+  if(!document.getElementById('meAnimCanvas')) return;
+  me.animPlaying=true; me.animIdx=0; me.animLast=performance.now(); me.animAccum=0;
+  const pb=document.getElementById('mePlayBtn'); if(pb) pb.textContent='⏸';
+  me.animRAF=requestAnimationFrame(meAnimLoop);
+}
+function stopMeAnim() {
+  me.animPlaying=false;
+  if(me.animRAF){cancelAnimationFrame(me.animRAF);me.animRAF=null;}
+  const pb=document.getElementById('mePlayBtn'); if(pb) pb.textContent='▶';
+}
+function toggleMeAnim() { me.animPlaying?stopMeAnim():startMeAnim(); }
+
+function meAnimLoop(ts) {
+  if(!me.animPlaying||!me.key) return;
+  const el=ts-me.animLast; me.animLast=ts; me.animAccum+=el;
+  const frames=loadedAssets[me.key]?.frames||[];
+  const dur=loadedAssets[me.key]?.durations[me.animIdx]||100;
+  if(me.animAccum>=dur){ me.animAccum-=dur; me.animIdx=(me.animIdx+1)%Math.max(1,frames.length); }
+  drawMeAnimFrame();
+  me.animRAF=requestAnimationFrame(meAnimLoop);
+}
+
+function drawMeAnimFrame() {
+  if(!me.key) return;
+  const frames=loadedAssets[me.key]?.frames||[];
+  if(!frames.length) return;
+  const f=frames[me.animIdx];
+  const ac=document.getElementById('meAnimCanvas');
+  if(!ac) { document.getElementById('meAnimInfo') && (document.getElementById('meAnimInfo').textContent=`${me.animIdx+1}/${frames.length}`); return; }
+  const scale=Math.min(148/f.width,110/f.height);
+  ac.width=Math.round(f.width*scale); ac.height=Math.round(f.height*scale);
+  const ctx=ac.getContext('2d'); ctx.clearRect(0,0,ac.width,ac.height);
+  ctx.drawImage(f,0,0,ac.width,ac.height);
+  const mask=maskLib[me.key]?.[me.region]?.[me.animIdx];
+  if(mask) {
+    const tmp=document.createElement('canvas'); tmp.width=f.width; tmp.height=f.height;
+    const tc=tmp.getContext('2d');
+    const id=tc.createImageData(f.width,f.height);
+    const [r,g,b,a]=parseRgba(REGION_COLORS[me.region]);
+    for(let i=0;i<mask.length;i++){if(!mask[i])continue;id.data[i*4]=r;id.data[i*4+1]=g;id.data[i*4+2]=b;id.data[i*4+3]=a;}
+    tc.putImageData(id,0,0);
+    ctx.drawImage(tmp,0,0,ac.width,ac.height);
+  }
+  const info=document.getElementById('meAnimInfo'); if(info) info.textContent=`${me.animIdx+1}/${frames.length}`;
+}
+
+// ═══════════════════════════════════════
+//  PRESET MANAGER
+// ═══════════════════════════════════════
+function loadPresetsFromStorage() {
+  try { presets=JSON.parse(localStorage.getItem('fg_presets')||'[]'); } catch(e){presets=[];}
+}
+function savePresetsToStorage() {
+  localStorage.setItem('fg_presets', JSON.stringify(presets));
+  updateChips(); renderCasinoList(); renderGenCasinoList(); updateGenStatus();
+}
+loadPresetsFromStorage();
+
+function addPreset() {
+  const id='casino_'+Date.now();
+  presets.push(makeDefaultPreset(id,'New Casino'));
+  savePresetsToStorage(); renderCasinoList(); selectPreset(id);
+}
+
+function makeDefaultPreset(id, name) {
+  return {
+    id, name,
+    player:    {shirtColor:'#E30613',sockColor:'#E30613',shortsColor:'#111111',skinColor:'#c68642',pattern:'solid',patternColor:'#FFFFFF',patternWidth:12,stripeAngle:0,number:'7',numberColor:'#FFFFFF',shirtOpacity:100,sockOpacity:100,shortsOpacity:100,skinOpacity:60},
+    goalkeeper:{shirtColor:'#111111',sockColor:'#FFFFFF',shortsColor:'#111111',skinColor:'#c68642',pattern:'solid',patternColor:'#FFFFFF',patternWidth:12,stripeAngle:0,shirtOpacity:100,sockOpacity:100,shortsOpacity:100,skinOpacity:50},
+  };
+}
+
+function renderCasinoList() {
+  const el=document.getElementById('casinoList'); el.innerHTML='';
+  presets.forEach(p=>{
+    const div=document.createElement('div');
+    div.className='casino-item'+(p.id===currentPresetId?' active':'');
+    div.onclick=()=>selectPreset(p.id);
+    const dot=document.createElement('div');
+    dot.className='casino-color-dot'; dot.style.background=p.player?.shirtColor||'#888';
+    div.appendChild(dot);
+    const nm=document.createElement('div');
+    nm.style.flex='1';
+    nm.innerHTML=`<div class="casino-item-name">${p.name}</div><div class="casino-item-id">${p.id}</div>`;
+    div.appendChild(nm);
+    el.appendChild(div);
+  });
+  const st=document.getElementById('presetStatus');
+  if(st){ st.textContent=`${presets.length} preset${presets.length!==1?'s':''}`; st.className='lp-status'+(presets.length?'':' err'); }
+}
+
+function selectPreset(id) {
+  currentPresetId=id;
+  const p=presets.find(x=>x.id===id);
+  document.getElementById('presetFormEmpty').style.display=p?'none':'flex';
+  document.getElementById('presetFormActive').style.display=p?'flex':'none';
+  if(p) renderPresetForm(p);
+  renderCasinoList();
+}
+
+function renderPresetForm(p) {
+  const body=document.getElementById('presetFormBody');
+  body.innerHTML=`
+    <div class="form-section">
+      <div class="form-section-title">Identity</div>
+      <div class="form-row"><span class="form-label">Casino Name</span><input class="form-input" id="fpName" value="${esc(p.name)}"></div>
+      <div class="form-row"><span class="form-label">Casino ID</span><input class="form-input" id="fpId" value="${esc(p.id)}"></div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">Player Kit</div>
+      ${colorRow('fpShirt','Shirt Color',p.player.shirtColor)}
+      ${opacityRow('fpShirtOp','Shirt',p.player.shirtOpacity??100)}
+      ${colorRow('fpSock','Sock Color',p.player.sockColor)}
+      ${opacityRow('fpSockOp','Socks',p.player.sockOpacity??100)}
+      ${colorRow('fpShorts','Shorts Color',p.player.shortsColor||'#111111')}
+      ${opacityRow('fpShortsOp','Shorts',p.player.shortsOpacity??100)}
+      ${colorRow('fpSkin','Skin Tone',p.player.skinColor||'#c68642')}
+      ${opacityRow('fpSkinOp','Skin blend',p.player.skinOpacity??60)}
+      ${patternRow('fpPattern','Pattern',p.player.pattern)}
+      ${colorRow('fpPatCol','Pattern Color',p.player.patternColor)}
+      <div class="form-row"><span class="form-label">Pattern Width</span>
+        <div class="range-row"><input type="range" id="fpPatW" min="4" max="40" value="${p.player.patternWidth||12}">
+        <span class="range-val" id="fpPatWVal">${p.player.patternWidth||12}px</span></div>
+      </div>
+      <div class="form-row"><span class="form-label">Stripe Angle</span>
+        <div class="range-row"><input type="range" id="fpStripeAngle" min="-45" max="45" step="5" value="${p.player.stripeAngle||0}">
+        <span class="range-val" id="fpStripeAngleVal">${p.player.stripeAngle||0}°</span></div>
+      </div>
+      <div class="form-row"><span class="form-label">Number</span>
+        <input class="form-input" id="fpNum" value="${esc(p.player.number||'7')}" style="max-width:60px;">
+        <span class="form-label" style="min-width:auto;margin-left:8px;">Color</span>
+        ${colorInputInline('fpNumCol',p.player.numberColor||'#FFFFFF')}
+      </div>
+    </div>
+    <div class="form-section">
+      <div class="form-section-title">Goalkeeper Kit</div>
+      ${colorRow('fgShirt','Shirt Color',p.goalkeeper.shirtColor)}
+      ${opacityRow('fgShirtOp','Shirt',p.goalkeeper.shirtOpacity??100)}
+      ${colorRow('fgSock','Sock Color',p.goalkeeper.sockColor)}
+      ${opacityRow('fgSockOp','Socks',p.goalkeeper.sockOpacity??100)}
+      ${colorRow('fgShorts','Shorts Color',p.goalkeeper.shortsColor||'#111111')}
+      ${opacityRow('fgShortsOp','Shorts',p.goalkeeper.shortsOpacity??100)}
+      ${colorRow('fgSkin','Skin Tone',p.goalkeeper.skinColor||'#c68642')}
+      ${opacityRow('fgSkinOp','Skin blend',p.goalkeeper.skinOpacity??50)}
+      ${patternRow('fgPattern','Pattern',p.goalkeeper.pattern)}
+      ${colorRow('fgPatCol','Pattern Color',p.goalkeeper.patternColor)}
+      <div class="form-row"><span class="form-label">Stripe Angle</span>
+        <div class="range-row"><input type="range" id="fgStripeAngle" min="-45" max="45" step="5" value="${p.goalkeeper.stripeAngle||0}">
+        <span class="range-val" id="fgStripeAngleVal">${p.goalkeeper.stripeAngle||0}°</span></div>
+      </div>
+    </div>`;
+  document.getElementById('fpPatW').addEventListener('input', e=>{ document.getElementById('fpPatWVal').textContent=e.target.value+'px'; });
+  document.getElementById('fpStripeAngle').addEventListener('input', e=>{ document.getElementById('fpStripeAngleVal').textContent=e.target.value+'°'; });
+  document.getElementById('fgStripeAngle').addEventListener('input', e=>{ document.getElementById('fgStripeAngleVal').textContent=e.target.value+'°'; });
+  ['fpShirtOp','fpSockOp','fpShortsOp','fpSkinOp','fgShirtOp','fgSockOp','fgShortsOp','fgSkinOp'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.addEventListener('input',()=>{ const v=document.getElementById(id+'Val'); if(v) v.textContent=el.value+'%'; });
+  });
+  wireColorInputs();
+}
+
+function opacityRow(id, label, val) {
+  const v = val??100;
+  return `<div class="form-row" style="margin-bottom:4px;"><span class="form-label" style="font-size:10px;color:var(--tx3);">${label} strength</span>
+    <div class="range-row"><input type="range" id="${id}" min="0" max="100" value="${v}">
+    <span class="range-val" id="${id}Val">${v}%</span></div></div>`;
+}
+
+function colorRow(id, label, val) {
+  return `<div class="form-row"><span class="form-label">${label}</span>
+    <div class="color-wrap">
+      <div class="color-swatch" id="sw_${id}" style="background:${val}" onclick="document.getElementById('cp_${id}').click()"></div>
+      <input type="color" id="cp_${id}" value="${val}">
+      <input class="color-hex" type="text" id="hx_${id}" value="${val}" maxlength="7">
+    </div></div>`;
+}
+
+function colorInputInline(id, val) {
+  return `<div class="color-wrap">
+    <div class="color-swatch" id="sw_${id}" style="background:${val}" onclick="document.getElementById('cp_${id}').click()"></div>
+    <input type="color" id="cp_${id}" value="${val}">
+    <input class="color-hex" type="text" id="hx_${id}" value="${val}" maxlength="7">
+  </div>`;
+}
+
+function patternRow(id, label, val) {
+  const opts=['solid','vertical_stripes','diagonal_stripe','half_half'].map(o=>`<option value="${o}"${o===val?' selected':''}>${o.replace(/_/g,' ')}</option>`).join('');
+  return `<div class="form-row"><span class="form-label">${label}</span><select class="form-input" id="${id}">${opts}</select></div>`;
+}
+
+function wireColorInputs() {
+  document.querySelectorAll('.color-hex').forEach(hx=>{
+    const suffix=hx.id.replace('hx_','');
+    const cp=document.getElementById('cp_'+suffix);
+    const sw=document.getElementById('sw_'+suffix);
+    if(!cp||!sw) return;
+    hx.addEventListener('input',()=>{if(/^#[0-9a-fA-F]{6}$/.test(hx.value)){sw.style.background=hx.value;cp.value=hx.value;}});
+    cp.addEventListener('input',()=>{hx.value=cp.value.toUpperCase();sw.style.background=cp.value;});
+  });
+}
+
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;'); }
+
+function saveCurrentPreset() {
+  if (!currentPresetId) return;
+  const idx=presets.findIndex(p=>p.id===currentPresetId);
+  if (idx<0) return;
+  const p=presets[idx];
+  p.name=val('fpName')||p.name;
+  p.id=val('fpId')||p.id;
+  p.player.shirtColor=val('hx_fpShirt');
+  p.player.sockColor=val('hx_fpSock');
+  p.player.shortsColor=val('hx_fpShorts');
+  p.player.skinColor=val('hx_fpSkin');
+  p.player.pattern=val('fpPattern');
+  p.player.patternColor=val('hx_fpPatCol');
+  p.player.patternWidth=parseInt(val('fpPatW'))||12;
+  p.player.stripeAngle=parseInt(val('fpStripeAngle'))||0;
+  p.player.number=val('fpNum');
+  p.player.numberColor=val('hx_fpNumCol');
+  p.player.shirtOpacity=parseInt(val('fpShirtOp'))||100;
+  p.player.sockOpacity=parseInt(val('fpSockOp'))||100;
+  p.player.shortsOpacity=parseInt(val('fpShortsOp'))||100;
+  p.player.skinOpacity=parseInt(val('fpSkinOp'))||60;
+  p.goalkeeper.shirtColor=val('hx_fgShirt');
+  p.goalkeeper.sockColor=val('hx_fgSock');
+  p.goalkeeper.shortsColor=val('hx_fgShorts');
+  p.goalkeeper.skinColor=val('hx_fgSkin');
+  p.goalkeeper.pattern=val('fgPattern');
+  p.goalkeeper.patternColor=val('hx_fgPatCol');
+  p.goalkeeper.stripeAngle=parseInt(val('fgStripeAngle'))||0;
+  p.goalkeeper.shirtOpacity=parseInt(val('fgShirtOp'))||100;
+  p.goalkeeper.sockOpacity=parseInt(val('fgSockOp'))||100;
+  p.goalkeeper.shortsOpacity=parseInt(val('fgShortsOp'))||100;
+  p.goalkeeper.skinOpacity=parseInt(val('fgSkinOp'))||50;
+  currentPresetId=p.id;
+  savePresetsToStorage();
+  const st=document.getElementById('presetStatus');
+  if(st){st.textContent='Saved';st.className='lp-status ok';}
+}
+
+function duplicatePreset() {
+  if (!currentPresetId) return;
+  const src=presets.find(p=>p.id===currentPresetId);
+  if (!src) return;
+  const dup=JSON.parse(JSON.stringify(src));
+  dup.id='casino_'+Date.now(); dup.name=src.name+' (copy)';
+  presets.push(dup); savePresetsToStorage(); selectPreset(dup.id);
+}
+
+function deleteCurrentPreset() {
+  if (!currentPresetId||!confirm('Delete this preset?')) return;
+  presets=presets.filter(p=>p.id!==currentPresetId);
+  currentPresetId=null; savePresetsToStorage(); selectPreset(null);
+}
+
+function val(id) { const el=document.getElementById(id); return el?el.value:''; }
+
+async function importCSVFile(file) {
+  if (!file) return;
+  try {
+    const lines=( await file.text()).trim().split('\n');
+    const headers=lines[0].split(',').map(h=>h.trim().toLowerCase());
+    let added=0;
+    for (let i=1;i<lines.length;i++) {
+      const cols=lines[i].split(',').map(c=>c.trim());
+      const row={}; headers.forEach((h,j)=>row[h]=cols[j]||'');
+      if (!row.casino_id&&!row.casino_name) continue;
+      const id=row.casino_id||'casino_'+Date.now()+'_'+i;
+      const p=makeDefaultPreset(id,row.casino_name||id);
+      if(row.player_shirt) p.player.shirtColor=row.player_shirt;
+      if(row.player_socks) p.player.sockColor=row.player_socks;
+      if(row.player_pattern) p.player.pattern=row.player_pattern;
+      if(row.pattern_color) p.player.patternColor=row.pattern_color;
+      if(row.player_number) p.player.number=row.player_number;
+      if(row.goalkeeper_shirt) p.goalkeeper.shirtColor=row.goalkeeper_shirt;
+      if(row.goalkeeper_socks) p.goalkeeper.sockColor=row.goalkeeper_socks;
+      if(row.goalkeeper_pattern) p.goalkeeper.pattern=row.goalkeeper_pattern;
+      if(!row.player_shirt&&row.primary) p.player.shirtColor=row.primary;
+      if(!row.player_socks&&row.secondary) p.player.sockColor=row.secondary;
+      presets=presets.filter(x=>x.id!==id); presets.push(p); added++;
+    }
+    savePresetsToStorage();
+    const st=document.getElementById('presetStatus');
+    if(st){st.textContent=`Imported ${added} presets`;st.className='lp-status ok';}
+  } catch(e) {
+    const st=document.getElementById('presetStatus');
+    if(st){st.textContent='CSV error: '+e.message;st.className='lp-status err';}
+  }
+}
+
+function exportPresetsJSON() {
+  dlBlob(new Blob([JSON.stringify(presets,null,2)],{type:'application/json'}),'casino_presets.json');
+  const st=document.getElementById('presetStatus');
+  if(st){st.textContent='Exported JSON';st.className='lp-status ok';}
+}
+
+// ═══════════════════════════════════════
+//  ASSET SWAPS
+// ═══════════════════════════════════════
+const assetSwaps = {}; // key = exact filename (e.g. 'loader_bar_bg.png') → File
+
+async function handleSwapUpload(input) {
+  const filename = input.dataset.swap;
+  if (!input.files.length) return;
+  const file = input.files[0];
+  const buf = await file.slice(0,4).arrayBuffer();
+  const bytes = new Uint8Array(buf);
+  if (bytes[0]!==0x89||bytes[1]!==0x50||bytes[2]!==0x4E||bytes[3]!==0x47) {
+    alert(file.name+' is not a PNG file. Please upload a PNG.');
+    input.value=''; return;
+  }
+  assetSwaps[filename] = file;
+  const slotEl = input.closest('.swap-slot');
+  const nameEl = document.getElementById('swapLabel_'+filename);
+  if (slotEl) slotEl.classList.add('has-swap');
+  if (nameEl) nameEl.textContent = file.name.length>16 ? file.name.slice(0,13)+'…' : file.name;
+  renderGenStatus();
+}
+
+// ═══════════════════════════════════════
+//  RECOLOR + PATTERN ENGINE
+// ═══════════════════════════════════════
+function hexToRgb(hex) {
+  return [parseInt(hex.slice(1,3),16),parseInt(hex.slice(3,5),16),parseInt(hex.slice(5,7),16)];
+}
+
+function getMaskBounds(mask, w, h) {
+  let minX=w,maxX=0,minY=h,maxY=0,found=false;
+  for(let y=0;y<h;y++) for(let x=0;x<w;x++) {
+    if(mask[y*w+x]){if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y;found=true;}
+  }
+  return found?{minX,maxX,minY,maxY}:null;
+}
+
+function applyColorToMask(outData, srcData, mask, settings, w, h) {
+  const {shirtColor, patternColor, pattern, patternWidth, stripeAngle, opacity=100} = settings;
+  const alpha = Math.max(0, Math.min(1, opacity / 100));
+  const [r1,g1,b1] = hexToRgb(shirtColor);
+  const [r2,g2,b2] = patternColor?hexToRgb(patternColor):[r1,g1,b1];
+
+  let lumSum=0, lumCount=0;
+  for(let i=0;i<mask.length;i++){
+    if(!mask[i]) continue;
+    const di=i*4; if(srcData[di+3]<=10) continue;
+    lumSum+=(srcData[di]*0.299+srcData[di+1]*0.587+srcData[di+2]*0.114);
+    lumCount++;
+  }
+  const baseLum=lumCount>0?lumSum/lumCount:128;
+  const bounds = getMaskBounds(mask, w, h);
+  const pw = patternWidth || 12;
+  const rad = (stripeAngle||0) * Math.PI / 180;
+  const cosA = Math.cos(rad), sinA = Math.sin(rad);
+
+  for(let y=0;y<h;y++) for(let x=0;x<w;x++){
+    const pi=y*w+x;
+    if(!mask[pi]) continue;
+    const di=pi*4; if(srcData[di+3]<=10) continue;
+    let pr=r1, pg=g1, pb=b1;
+    if(pattern==='vertical_stripes'){
+      const offset = (stripeAngle&&stripeAngle!==0) ? (x*cosA + y*sinA) : x;
+      if(Math.floor(offset/pw)%2!==0){pr=r2;pg=g2;pb=b2;}
+    } else if(pattern==='diagonal_stripe'){
+      const offset = (stripeAngle!=null&&stripeAngle!==0) ? (x*cosA + y*sinA) : (x+y);
+      if(Math.floor(offset/pw)%2!==0){pr=r2;pg=g2;pb=b2;}
+    } else if(pattern==='half_half'&&bounds){ if(y>=(bounds.minY+bounds.maxY)/2){pr=r2;pg=g2;pb=b2;} }
+    const origLum=(srcData[di]*0.299+srcData[di+1]*0.587+srcData[di+2]*0.114);
+    const scale=Math.min(origLum/Math.max(baseLum,1)*1.1, 2.2);
+    const nr=Math.min(255,Math.round(pr*scale));
+    const ng=Math.min(255,Math.round(pg*scale));
+    const nb=Math.min(255,Math.round(pb*scale));
+    outData[di]  =Math.round(srcData[di]  *(1-alpha)+nr*alpha);
+    outData[di+1]=Math.round(srcData[di+1]*(1-alpha)+ng*alpha);
+    outData[di+2]=Math.round(srcData[di+2]*(1-alpha)+nb*alpha);
+  }
+}
+
+function renderNumberOnFrame(srcCanvas, anchor, settings) {
+  const {number, color, size, stroke, strokeColor, bold, opacity} = settings;
+  if (!anchor||!number) return srcCanvas;
+  const w=srcCanvas.width, h=srcCanvas.height;
+  const tmp=document.createElement('canvas'); tmp.width=w; tmp.height=h;
+  const tc=tmp.getContext('2d');
+  tc.font=`${bold?'bold':'normal'} ${size}px Arial,sans-serif`;
+  tc.textAlign='center'; tc.textBaseline='middle';
+  if(stroke>0){tc.strokeStyle=strokeColor||'#000';tc.lineWidth=stroke*2;tc.lineJoin='round';tc.strokeText(number,anchor.x,anchor.y);}
+  tc.fillStyle=color||'#FFF'; tc.fillText(number,anchor.x,anchor.y);
+  const td=tc.getImageData(0,0,w,h).data;
+  const out=cloneCanvas(srcCanvas);
+  const outCtx=out.getContext('2d');
+  const srcData=srcCanvas.getContext('2d').getImageData(0,0,w,h).data;
+  const id=outCtx.getImageData(0,0,w,h); const od=id.data;
+  for(let i=0;i<od.length;i+=4){
+    const ta=td[i+3]/255; if(ta<=0) continue;
+    if(srcData[i+3]<=10) continue;
+    const lum=(srcData[i]*0.299+srcData[i+1]*0.587+srcData[i+2]*0.114)/255;
+    const shade=0.4+0.6*lum; const a=ta*(opacity||0.9);
+    od[i]  =Math.round(od[i]*(1-a)+Math.min(255,td[i]*shade)*a);
+    od[i+1]=Math.round(od[i+1]*(1-a)+Math.min(255,td[i+1]*shade)*a);
+    od[i+2]=Math.round(od[i+2]*(1-a)+Math.min(255,td[i+2]*shade)*a);
+  }
+  outCtx.putImageData(id,0,0);
+  return out;
+}
+
+function processFrameForCasino(frameCanvas, frameIdx, assetKey, preset, assetType) {
+  const w=frameCanvas.width, h=frameCanvas.height;
+  const out=cloneCanvas(frameCanvas);
+  const outCtx=out.getContext('2d');
+  const srcData=frameCanvas.getContext('2d').getImageData(0,0,w,h).data;
+  const id=outCtx.getImageData(0,0,w,h); const od=id.data; od.set(srcData);
+  const isPlayer=assetType==='player';
+  const isBall=assetType==='ball';
+  const kit=isPlayer?preset.player:preset.goalkeeper;
+  if(!isBall){
+    const shirtMask=maskLib[assetKey]?.shirt?.[frameIdx];
+    if(shirtMask) applyColorToMask(od, srcData, shirtMask, {shirtColor:kit.shirtColor,patternColor:kit.patternColor,pattern:kit.pattern,patternWidth:kit.patternWidth,stripeAngle:kit.stripeAngle||0,opacity:kit.shirtOpacity||100}, w, h);
+    const sockMask=maskLib[assetKey]?.socks?.[frameIdx];
+    if(sockMask) applyColorToMask(od, srcData, sockMask, {shirtColor:kit.sockColor,patternColor:null,pattern:'solid',patternWidth:0,stripeAngle:0,opacity:kit.sockOpacity||100}, w, h);
+    const shortsMask=maskLib[assetKey]?.shorts?.[frameIdx];
+    if(shortsMask) applyColorToMask(od, srcData, shortsMask, {shirtColor:kit.shortsColor||'#111111',patternColor:null,pattern:'solid',patternWidth:0,stripeAngle:0,opacity:kit.shortsOpacity||100}, w, h);
+    const skinMask=maskLib[assetKey]?.skin?.[frameIdx];
+    if(skinMask) applyColorToMask(od, srcData, skinMask, {shirtColor:kit.skinColor||'#c68642',patternColor:null,pattern:'solid',patternWidth:0,stripeAngle:0,opacity:kit.skinOpacity||60}, w, h);
+  }
+  outCtx.putImageData(id,0,0);
+  let result=out;
+  if(isPlayer&&preset.player.number){
+    // Fall back to any available anchor if this specific frame doesn't have one placed
+    const anchor = maskLib[assetKey]?.anchors?.[frameIdx]
+      || maskLib[assetKey]?.anchors?.find(a => a != null)
+      || null;
+    if(anchor) result=renderNumberOnFrame(result, anchor, {number:preset.player.number,color:preset.player.numberColor||'#FFF',size:42,stroke:1.5,strokeColor:'#000',bold:true,opacity:0.9});
+  }
+  return result;
+}
+
+// ═══════════════════════════════════════
+//  GENERATOR
+// ═══════════════════════════════════════
+function renderGenStatus() {
+  const bar=document.getElementById('genStatusBar');
+  if(!bar) return;
+  const al=Object.keys(loadedAssets).length;
+  const total=REGISTRY.length;
+  const mr=REGISTRY.filter(d=>{const c=getMaskCoverage(d.key);return c.shirt>0||c.socks>0;}).length;
+  const sp=SWAP_SLOTS.filter(s=>assetSwaps[s]).length;
+  bar.innerHTML='';
+  addStatusCard(bar, al>0, `Assets ${al}/${total}`, al===total?'All loaded':`${total-al} missing`);
+  addStatusCard(bar, mr>0, `Masks ${mr}/${total}`, mr===total?'All masked':'Load or draw masks');
+  addStatusCard(bar, presets.length>0, `Presets ${presets.length}`, presets.length?'Ready':'Add casino presets');
+  addStatusCard(bar, sp===10, `PNGs ${sp}/10`, sp===10?'All ready':`${10-sp} missing — required for export`);
+}
+
+function addStatusCard(parent, ok, title, sub) {
+  const d=document.createElement('div');
+  d.className='gen-status-card'+(ok?' ok':' err');
+  d.innerHTML=`<span class="gen-status-icon">${ok?'✓':'✗'}</span><div><div class="gen-status-text">${title}</div><div class="gen-status-sub">${sub}</div></div>`;
+  parent.appendChild(d);
+}
+
+function renderGenCasinoList() {
+  const el=document.getElementById('genCasinoList');
+  if(!el) return;
+  el.innerHTML='';
+  presets.forEach(p=>{
+    const div=document.createElement('div');
+    div.className='casino-item';
+    div.style.gap='7px';
+    const cb=document.createElement('input');
+    cb.type='checkbox'; cb.id='gcb_'+p.id; cb.checked=true; cb.dataset.id=p.id;
+    cb.style.accentColor='var(--acc)';
+    const dot=document.createElement('div');
+    dot.className='casino-color-dot'; dot.style.background=p.player?.shirtColor||'#888';
+    const lbl=document.createElement('label');
+    lbl.htmlFor='gcb_'+p.id; lbl.className='casino-item-name'; lbl.textContent=p.name; lbl.style.cursor='pointer';
+    div.appendChild(cb); div.appendChild(dot); div.appendChild(lbl);
+    el.appendChild(div);
+  });
+}
+
+function genSelectAll() { document.querySelectorAll('#genCasinoList input[type=checkbox]').forEach(cb=>cb.checked=true); }
+function genSelectNone() { document.querySelectorAll('#genCasinoList input[type=checkbox]').forEach(cb=>cb.checked=false); }
+function getSelectedCasinoIds() { return [...document.querySelectorAll('#genCasinoList input[type=checkbox]:checked')].map(cb=>cb.dataset.id); }
+function updateGenStatus() { renderGenStatus(); renderGenCasinoList(); updateChips(); }
+
+async function genPreview() {
+  const ids=getSelectedCasinoIds();
+  if(!ids.length){setSt('exportStatus','Select at least one casino','err');return;}
+  const preset=presets.find(p=>p.id===ids[0]);
+  if(!preset) return;
+  const assetKey=(document.getElementById('genPreviewAsset')?.value)||'player';
+  const def=REGISTRY.find(d=>d.key===assetKey);
+  if(!loadedAssets[assetKey]){setSt('exportStatus',`${def?.file||assetKey} not loaded — load assets folder first`,'err');return;}
+  setSt('exportStatus','Generating preview…');
+  const {frames,durations}=loadedAssets[assetKey];
+  genBeforeFrames=frames;
+  genPreviewDurations=durations;
+  genAfterFrames=[];
+  for(let i=0;i<frames.length;i++){
+    genAfterFrames.push(processFrameForCasino(frames[i],i,assetKey,preset,def.type));
+    await yld();
+  }
+  genShowAfter=true;
+  document.getElementById('btnToggleBA').style.display='';
+  document.getElementById('btnToggleBA').textContent='Show: After';
+  startGenPreviewAnim(genAfterFrames, durations);
+  setSt('exportStatus',`Preview: ${preset.name} — ${def?.file||assetKey}`,'ok');
+}
+
+function toggleBeforeAfter() {
+  genShowAfter=!genShowAfter;
+  document.getElementById('btnToggleBA').textContent='Show: '+(genShowAfter?'After':'Before');
+  const f=genShowAfter?genAfterFrames:genBeforeFrames;
+  if(f&&genPreviewDurations) startGenPreviewAnim(f, genPreviewDurations);
+}
+
+function startGenPreviewAnim(frames, durs) {
+  genAnimFrames=frames; genAnimDurs=durs;
+  if(genAnimRAF) clearTimeout(genAnimRAF);
+  genAnimIdx=0; genAnimLast=performance.now();
+  const canvas=document.getElementById('genPreviewCanvas');
+  canvas.style.display=''; document.getElementById('genPreviewMsg').style.display='none';
+  genAnimLoop(genAnimLast);
+}
+
+function genAnimLoop(ts) {
+  if(!genAnimFrames||!genAnimFrames.length) return;
+  const dur=genAnimDurs?.[genAnimIdx]||100;
+  const canvas=document.getElementById('genPreviewCanvas');
+  const f=genAnimFrames[genAnimIdx];
+  canvas.width=f.width; canvas.height=f.height;
+  canvas.getContext('2d').drawImage(f,0,0);
+  genAnimIdx=(genAnimIdx+1)%genAnimFrames.length;
+  genAnimRAF=setTimeout(()=>genAnimLoop(performance.now()), dur);
+}
+
+async function startExport() {
+  const exportMode=document.querySelector('input[name=exportMode]:checked')?.value||'selected';
+  const pkgMode=document.querySelector('input[name=pkgMode]:checked')?.value||'individual';
+  let casinoIds=exportMode==='all'?presets.map(p=>p.id):getSelectedCasinoIds();
+  if(!casinoIds.length){setSt('exportStatus','No casinos selected','err');return;}
+  if(!Object.keys(loadedAssets).length){setSt('exportStatus','Load assets folder first','err');return;}
+  const missing=SWAP_SLOTS.filter(s=>!assetSwaps[s]);
+  if(missing.length>0){showTrexError(missing);return;}
+
+  document.getElementById('progressBar').style.display='';
+  document.getElementById('progressLog').style.display='';
+  document.getElementById('progressLog').innerHTML='';
+  document.getElementById('exportBtn').disabled=true;
+  setSt('exportStatus','Exporting…');
+
+  try {
+    const masterZip=new JSZip();
+    const total=casinoIds.length;
+    for(let ci=0;ci<casinoIds.length;ci++){
+      const preset=presets.find(p=>p.id===casinoIds[ci]);
+      if(!preset) continue;
+      log(`Processing: ${preset.name}…`);
+      setProgress((ci/total)*0.9);
+      try {
+        const casinoZip=new JSZip();
+        const masterFolder=(pkgMode==='master'||pkgMode==='both')?masterZip.folder(preset.id):null;
+        for(const def of REGISTRY){
+          let webpBlob;
+          if(loadedAssets[def.key]){
+            const {frames,durations}=loadedAssets[def.key];
+            const processed=[];
+            for(let fi=0;fi<frames.length;fi++){ processed.push(processFrameForCasino(frames[fi],fi,def.key,preset,def.type)); await yld(); }
+            webpBlob=await encodeAnimatedWebP(processed,durations);
+          }
+          if(webpBlob){ casinoZip.file(def.file,webpBlob); if(masterFolder) masterFolder.file(def.file,webpBlob); }
+        }
+        for(const slotName of SWAP_SLOTS){
+          const file=assetSwaps[slotName];
+          if(file){ const buf=await file.arrayBuffer(); casinoZip.file(slotName,buf); if(masterFolder) masterFolder.file(slotName,buf); }
+        }
+        for(const [name,origFile] of Object.entries(staticFiles)){
+          if(SWAP_SLOTS.includes(name)) continue;
+          if(name==='background.jpg'&&assetSwaps['background.png']) continue;
+          const buf=await origFile.arrayBuffer();
+          casinoZip.file(name,buf); if(masterFolder) masterFolder.file(name,buf);
+        }
+        if(pkgMode==='individual'||pkgMode==='both'){
+          dlBlob(await casinoZip.generateAsync({type:'blob'}),`${preset.id}_football_shootout.zip`);
+        }
+        log(`✓ ${preset.name}`,'ok');
+      } catch(err){ log(`✗ ${preset.name}: ${err.message}`,'err'); }
+    }
+    if(pkgMode==='master'||pkgMode==='both'){
+      setSt('exportStatus','Building master ZIP…');
+      dlBlob(await masterZip.generateAsync({type:'blob',onUpdate:m=>setProgress(0.9+m.percent/1000)}),'all_football_shootout_assets.zip');
+    }
+    setProgress(1);
+    const funnyWins=[
+      `🎉 BOOM! ${casinoIds.length} casino(s) looking absolutely fire — the players are dressed and ready to score!`,
+      `💅 Flawless. ${casinoIds.length} skin(s) exported. Your designer deserves a raise. Maybe two.`,
+      `🚀 ${casinoIds.length} casino kit(s) shipped! The goalkeeper saw the final result and refused to let any goals in.`,
+      `🏆 ${casinoIds.length} casino(s) exported and runway-ready. Even the ball is glowing.`,
+      `🦖 RAWR of pure joy! ${casinoIds.length} casino skin(s) exported. The T-Rex is so proud it grew tiny little happy arms.`,
+      `✨ ${casinoIds.length} kit(s) done. Somewhere, a footballer is putting on a freshly coloured shirt and feeling like a legend.`,
+    ];
+    setSt('exportStatus', funnyWins[Math.floor(Math.random()*funnyWins.length)], 'ok');
+  } catch(e){
+    setSt('exportStatus','Export error: '+e.message,'err');
+    log('Fatal: '+e.message,'err');
+  }
+  document.getElementById('exportBtn').disabled=false;
+}
+
+function setProgress(v) { document.getElementById('progressFill').style.width=Math.round(v*100)+'%'; }
+
+function log(msg, type='') {
+  const el=document.getElementById('progressLog');
+  const line=document.createElement('div');
+  line.className=type?'log-'+type:'';
+  line.textContent=msg; el.appendChild(line); el.scrollTop=el.scrollHeight;
+}
+
+// ═══════════════════════════════════════
+//  TAB SWITCHING
+// ═══════════════════════════════════════
+function switchTab(t) {
+  const map={mask:'Mask',presets:'Presets',gen:'Gen'};
+  Object.entries(map).forEach(([key,Cap])=>{
+    document.getElementById('pane'+Cap).classList.toggle('hidden',key!==t);
+    const nb=document.getElementById('nb'+Cap);
+    if(nb) nb.classList.toggle('active',key===t);
+  });
+  if(t==='presets') renderCasinoList();
+  if(t==='gen') { renderGenStatus(); renderGenCasinoList(); }
+}
+
+// ═══════════════════════════════════════
+//  UI HELPERS
+// ═══════════════════════════════════════
+function cloneCanvas(src) {
+  const c=document.createElement('canvas'); c.width=src.width; c.height=src.height;
+  c.getContext('2d').drawImage(src,0,0); return c;
+}
+
+function dlBlob(blob, name) {
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+}
+
+function yld() { return new Promise(r=>setTimeout(r,0)); }
+
+function updateChips() {
+  const al=Object.keys(loadedAssets).length;
+  const rtotal=REGISTRY.length;
+  const ec=document.getElementById('chipAssets');
+  if(ec){ec.textContent=`Assets ${al}/${rtotal}`;ec.className='nav-chip'+(al===rtotal?' ok':al>0?' warn':'');}
+
+  const mr=REGISTRY.filter(d=>{const c=getMaskCoverage(d.key);return c.shirt>0;}).length;
+  const em=document.getElementById('chipMasks');
+  if(em){em.textContent=`Masks ${mr}/${rtotal}`;em.className='nav-chip'+(mr===rtotal?' ok':mr>0?' warn':'');}
+
+  const ep=document.getElementById('chipPresets');
+  if(ep){ep.textContent=`Presets ${presets.length}`;ep.className='nav-chip'+(presets.length>0?' ok':'');}
+
+  setSt('folderStatus','','');
+}
+
+// ── Tolerance slider wiring ──
+document.getElementById('meToleranceSlider').addEventListener('input', function() {
+  document.getElementById('meTolVal').textContent = this.value;
+});
+document.getElementById('meBrushSize').addEventListener('input', function() {
+  document.getElementById('meBrushVal').textContent = this.value+'px';
+});
+document.getElementById('meOpacitySlider').addEventListener('input', function() {
+  document.getElementById('meOpacityVal').textContent = this.value+'%';
+  if (me.key) drawMeOverlay();
+});
+
+// ── Keyboard shortcuts ──
+document.addEventListener('keydown', e => {
+  const ctrl = e.ctrlKey || e.metaKey;
+  if (ctrl) {
+    if (e.key === 'z' && !e.shiftKey) { e.preventDefault(); doUndo(); }
+    if (e.key === 'y' || (e.key === 'z' && e.shiftKey)) { e.preventDefault(); doRedo(); }
+    return;
+  }
+  const tag = document.activeElement?.tagName;
+  if (tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT') return;
+  if (e.key==='w'||e.key==='W') meTool('wand');
+  else if (e.key==='r'||e.key==='R') meTool('range');
+  else if (e.key==='b'||e.key==='B') meTool('brush');
+  else if (e.key==='l'||e.key==='L') meTool('lasso');
+  else if (e.key==='s'||e.key==='S') { e.preventDefault(); doSmooth(); }
+  else if (e.key==='[') { const sl=document.getElementById('meBrushSize'); if(sl){sl.value=Math.max(1,parseInt(sl.value)-2);document.getElementById('meBrushVal').textContent=sl.value+'px';} }
+  else if (e.key===']') { const sl=document.getElementById('meBrushSize'); if(sl){sl.value=Math.min(20,parseInt(sl.value)+2);document.getElementById('meBrushVal').textContent=sl.value+'px';} }
+  else if (e.key==='ArrowLeft')  { e.preventDefault(); if(me.key) loadMeFrame(me.frameIdx-1); }
+  else if (e.key==='ArrowRight') { e.preventDefault(); if(me.key) loadMeFrame(me.frameIdx+1); }
+});
+
+// ── Browser check ──
+if(typeof ImageDecoder==='undefined'){
+  document.body.insertAdjacentHTML('afterbegin','<div style="position:fixed;top:0;left:0;right:0;z-index:9999;background:#451a03;color:#fed7aa;border-bottom:2px solid #f97316;padding:8px 16px;font-size:11px;font-weight:500;">⚠ ImageDecoder API not available — only single-frame WebP will load. Use Chrome or Edge for full animated WebP support.</div>');
+}
+
+// ── Init ──
+renderAssetGrid();
+renderCasinoList();
+updateChips();
+</script>
+
+<!-- ══ TOUR OVERLAY ══ -->
+<div id="tourOverlay">
+  <div id="tourDim"></div>
+  <div id="tourSpotlight" style="display:none;"></div>
+  <div id="tourArrow" style="display:none;"></div>
+  <div id="tourCard" style="display:none;">
+    <div class="tc-label" id="tcLabel">Step 1 / 12</div>
+    <div class="tc-title" id="tcTitle">Welcome</div>
+    <img class="tc-img" id="tcImg" src="" alt="" style="display:none;">
+    <div class="tc-body" id="tcBody">Let's go!</div>
+    <div class="tc-footer">
+      <div class="tc-dots" id="tcDots"></div>
+      <button class="tc-btn sec" id="tcBtnPrev" onclick="tourPrev()">← Back</button>
+      <button class="tc-btn pri" id="tcBtnNext" onclick="tourNext()">Next →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════
+//  GUIDED TOUR
+// ═══════════════════════════════════════
+const ASSET_BASE = '../Support Files/football_assets_extracted/Football_Shootout_assets/';
+
+const TOUR_STEPS = [
+  {
+    target: null, tab: null,
+    label: 'Welcome',
+    title: '⚽ Football Skin Generator Tour',
+    body: 'This 2-minute tour walks through the full workflow: painting masks, configuring casino presets, and exporting ready-to-ship ZIP files. Press Next to begin.',
+    img: ASSET_BASE + 'player.webp',
+    pos: 'center'
+  },
+  {
+    target: '.nav-footer', tab: null,
+    label: 'Loading Assets',
+    title: '📂 Load your assets first',
+    body: 'Click "Load Assets" and select your Football_Shootout_assets folder. All 9 sprites load automatically — player, ball, and 7 goalkeeper poses.',
+    img: null, pos: 'right'
+  },
+  {
+    target: '#nbMask', tab: 'mask',
+    label: 'Tab 1 — Masks',
+    title: '⬡ Mask Editor',
+    body: 'The first tab is where you paint region masks. This only needs to be done once — masks are saved as JSON and reused for every casino forever.',
+    img: null, pos: 'right'
+  },
+  {
+    target: '#assetGrid', tab: 'mask',
+    label: 'Asset List',
+    title: '🧑 9 sprite assets',
+    body: 'Select any asset to start masking it. Coloured dots show coverage — grey means empty, amber means partial, green means fully masked.',
+    img: null, pos: 'right'
+  },
+  {
+    target: '#meCanvasWrap', tab: 'mask',
+    label: 'Canvas',
+    title: '🎨 The masking canvas',
+    body: 'The sprite is shown here with a coloured overlay. Paint directly onto it to define which pixels belong to each kit region. Zoom in for precision.',
+    img: ASSET_BASE + 'player.webp', pos: 'left'
+  },
+  {
+    target: '#toolPanel', tab: 'mask',
+    label: 'Region & Tools',
+    title: '🛠 Region tabs + Tool selector',
+    body: 'Pick a region (Shirt / Socks / Shorts / Skin / Number), then pick a tool: Wand flood-fills from a click, Range matches colour globally, Brush paints freehand, Lasso fills a shape.',
+    img: null, pos: 'left'
+  },
+  {
+    target: '#tbnAllGK', tab: 'mask',
+    label: 'GK Propagation',
+    title: '→ All GK — the big timesaver',
+    body: 'Once goalkeeper_idle is masked, this button broadcasts the mask to all 7 goalkeeper poses in one click. No need to repaint each one.',
+    img: ASSET_BASE + 'goalkeeper_idle.webp', pos: 'left'
+  },
+  {
+    target: '.frame-strip-area', tab: 'mask',
+    label: 'Frame Strip',
+    title: '🎞 Animation frames',
+    body: 'Every frame of the animated WebP is shown here. Paint one frame, then hit "Region → All" to copy that region to every frame at once.',
+    img: null, pos: 'top'
+  },
+  {
+    target: '.lp-footer', tab: 'mask',
+    label: 'Save Masks',
+    title: '💾 Save your masks as JSON',
+    body: 'Save separate JSON files for Player+Ball and Goalkeeper masks. Reload them next session — you\'ll never have to repaint from scratch again.',
+    img: null, pos: 'right'
+  },
+  {
+    target: '#nbPresets', tab: 'presets',
+    label: 'Tab 2 — Presets',
+    title: '◈ Casino Presets',
+    body: 'Switch to the Presets tab to define each casino\'s kit. Colours, patterns, and blend intensity are all set here.',
+    img: null, pos: 'right'
+  },
+  {
+    target: '#casinoList', tab: 'presets',
+    label: 'Casino List',
+    title: '🎰 One entry per casino',
+    body: 'Each row is one casino brand. Colour dots give a visual preview. Click "+ New" to add one, or use "Import CSV" to load 100+ brands from a spreadsheet.',
+    img: null, pos: 'right'
+  },
+  {
+    target: '#presetFormBody', tab: 'presets',
+    label: 'Preset Form',
+    title: '🎨 Kit colours & patterns',
+    body: 'Set Shirt, Socks, Shorts, Skin, and Number colours for both Player and GK kits. Pick a pattern — Solid, Vertical stripes, Diagonal, or Half & half. Use Blend Opacity to control colour intensity per region.',
+    img: null, pos: 'left'
+  },
+  {
+    target: '#nbGen', tab: 'gen',
+    label: 'Tab 3 — Export',
+    title: '⚡ Export & Package',
+    body: 'The final tab. All 4 status cards must go green before you can export. Select your casinos, pick a ZIP format, and click Export.',
+    img: null, pos: 'right'
+  },
+  {
+    target: '#genStatusBar', tab: 'gen',
+    label: 'Status Bar',
+    title: '✅ Status checks',
+    body: 'Assets loaded, masks complete, presets created, and 10 PNG slots filled — all four must be green. If any is amber, the export button stays locked.',
+    img: null, pos: 'bottom'
+  },
+  {
+    target: '#swapGrid', tab: 'gen',
+    label: 'PNG Asset Slots',
+    title: '🖼 10 required PNG assets',
+    body: 'Upload the 10 UI image files (loader_bar_bg, loader_logo, popup_body, etc.). Click any slot label, pick the PNG, and the dot turns green. All 10 must be filled before exporting.',
+    img: null, pos: 'top'
+  },
+  {
+    target: '#exportBtn', tab: 'gen',
+    label: 'Export!',
+    title: '📦 Generate & download',
+    body: 'Click Export. The tool processes every selected casino — recolouring all 9 WebP frames per preset — and downloads the ZIPs automatically. Watch the progress log as each casino completes.',
+    img: ASSET_BASE + 'ball.webp', pos: 'top'
+  },
+];
+
+let tourStep = 0;
+let tourActive = false;
+
+function startTour() {
+  tourStep = 0;
+  tourActive = true;
+  document.getElementById('tourOverlay').classList.add('active');
+  renderTourStep();
+}
+
+function endTour() {
+  tourActive = false;
+  const ov = document.getElementById('tourOverlay');
+  ov.classList.remove('active');
+  document.getElementById('tourSpotlight').style.display = 'none';
+  document.getElementById('tourArrow').style.display = 'none';
+  const card = document.getElementById('tourCard');
+  card.classList.remove('show');
+  setTimeout(() => { card.style.display = 'none'; }, 350);
+}
+
+function tourNext() {
+  if (tourStep >= TOUR_STEPS.length - 1) { endTour(); return; }
+  tourStep++;
+  renderTourStep();
+}
+
+function tourPrev() {
+  if (tourStep <= 0) return;
+  tourStep--;
+  renderTourStep();
+}
+
+function renderTourStep() {
+  const step = TOUR_STEPS[tourStep];
+
+  // Switch tab if needed
+  if (step.tab) switchTab(step.tab);
+
+  // Build dots
+  const dotsEl = document.getElementById('tcDots');
+  dotsEl.innerHTML = '';
+  TOUR_STEPS.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'tc-dot' + (i === tourStep ? ' cur' : i < tourStep ? ' done' : '');
+    dotsEl.appendChild(d);
+  });
+
+  // Update card content
+  document.getElementById('tcLabel').textContent = 'Step ' + (tourStep + 1) + ' / ' + TOUR_STEPS.length;
+  document.getElementById('tcTitle').textContent = step.title;
+  document.getElementById('tcBody').textContent = step.body;
+  document.getElementById('tcBtnPrev').disabled = tourStep === 0;
+  document.getElementById('tcBtnNext').textContent = tourStep === TOUR_STEPS.length - 1 ? 'Finish ✓' : 'Next →';
+
+  const imgEl = document.getElementById('tcImg');
+  if (step.img) {
+    imgEl.src = step.img;
+    imgEl.style.display = 'block';
+  } else {
+    imgEl.style.display = 'none';
+  }
+
+  // Position spotlight and card after a tick (allow tab switch to render)
+  setTimeout(() => positionTour(step), 60);
+}
+
+function positionTour(step) {
+  const spotlight = document.getElementById('tourSpotlight');
+  const card = document.getElementById('tourCard');
+  const arrow = document.getElementById('tourArrow');
+
+  card.style.display = 'block';
+  arrow.style.display = 'none';
+
+  if (step.pos === 'center' || !step.target) {
+    spotlight.style.display = 'none';
+    // Center card
+    card.style.left = '50%';
+    card.style.top = '50%';
+    card.style.transform = 'translate(-50%,-50%)';
+    card.style.right = 'auto';
+    card.style.bottom = 'auto';
+    setTimeout(() => card.classList.add('show'), 20);
+    return;
+  }
+
+  const el = document.querySelector(step.target);
+  if (!el) {
+    spotlight.style.display = 'none';
+    card.style.left = '50%';
+    card.style.top = '50%';
+    card.style.transform = 'translate(-50%,-50%)';
+    card.style.right = 'auto';
+    card.style.bottom = 'auto';
+    setTimeout(() => card.classList.add('show'), 20);
+    return;
+  }
+
+  const pad = 8;
+  const r = el.getBoundingClientRect();
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const cw = 300; // card width
+  const gap = 16; // gap between spotlight and card
+
+  // Show spotlight
+  spotlight.style.display = 'block';
+  spotlight.style.left = (r.left - pad) + 'px';
+  spotlight.style.top = (r.top - pad) + 'px';
+  spotlight.style.width = (r.width + pad * 2) + 'px';
+  spotlight.style.height = (r.height + pad * 2) + 'px';
+
+  // Position card
+  card.style.transform = 'none';
+  let cl, ct;
+
+  if (step.pos === 'right') {
+    cl = r.right + pad + gap;
+    ct = r.top + r.height / 2 - 120;
+    // Arrow pointing left
+    arrow.style.display = 'block';
+    arrow.style.left = (cl - 6) + 'px';
+    arrow.style.top = (r.top + r.height / 2 - 6) + 'px';
+    arrow.style.borderRight = 'none';
+    arrow.style.borderBottom = 'none';
+  } else if (step.pos === 'left') {
+    cl = r.left - pad - gap - cw;
+    ct = r.top + r.height / 2 - 120;
+    // Arrow pointing right
+    arrow.style.display = 'block';
+    arrow.style.left = (r.left - pad - gap - 6) + 'px';
+    arrow.style.top = (r.top + r.height / 2 - 6) + 'px';
+    arrow.style.borderLeft = 'none';
+    arrow.style.borderTop = 'none';
+  } else if (step.pos === 'bottom') {
+    cl = r.left + r.width / 2 - cw / 2;
+    ct = r.bottom + pad + gap;
+    arrow.style.display = 'block';
+    arrow.style.left = (r.left + r.width / 2 - 6) + 'px';
+    arrow.style.top = (r.bottom + pad + gap - 6) + 'px';
+    arrow.style.borderBottom = 'none';
+    arrow.style.borderRight = 'none';
+  } else { // top
+    cl = r.left + r.width / 2 - cw / 2;
+    ct = r.top - pad - gap - 200;
+    arrow.style.display = 'block';
+    arrow.style.left = (r.left + r.width / 2 - 6) + 'px';
+    arrow.style.top = (r.top - pad - gap - 6) + 'px';
+    arrow.style.borderTop = 'none';
+    arrow.style.borderLeft = 'none';
+  }
+
+  // Clamp within viewport
+  cl = Math.max(8, Math.min(vw - cw - 8, cl));
+  ct = Math.max(8, Math.min(vh - 240, ct));
+
+  card.style.left = cl + 'px';
+  card.style.top = ct + 'px';
+  card.style.right = 'auto';
+  card.style.bottom = 'auto';
+
+  card.classList.remove('show');
+  setTimeout(() => card.classList.add('show'), 20);
+}
+
+// Close tour on Escape
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && tourActive) endTour();
+  if (e.key === 'ArrowRight' && tourActive) { e.preventDefault(); tourNext(); }
+  if (e.key === 'ArrowLeft' && tourActive) { e.preventDefault(); tourPrev(); }
+});
+</script>
+
+<!-- T-Rex modal -->
+<div class="trex-modal hidden" id="trexModal">
+  <div class="trex-box">
+    <pre class="trex-art">      __
+     / _)
+.-^^^-/ /
+__/       /
+&lt;__.|_|-|_|</pre>
+    <div class="trex-title">🦖 RAWR!</div>
+    <div class="trex-body">I'm a T-Rex and even I know you forgot to upload all your PNG files!<br>Feed me PNGs or I'll eat your export!</div>
+    <div class="trex-missing" id="trexMissing"></div>
+    <button class="btn btn-acc" onclick="document.getElementById('trexModal').classList.add('hidden')">OK, I'll upload them</button>
+  </div>
+</div>
+</body>
+</html>
