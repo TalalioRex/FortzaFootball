@@ -280,6 +280,47 @@ input[type=color]{width:0;height:0;opacity:0;position:absolute;}
 .tp-slider{width:100%;height:3px;-webkit-appearance:none;appearance:none;background:var(--border2);border-radius:2px;outline:none;cursor:pointer;display:block;}
 .tp-slider::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:var(--ms);border:2px solid var(--acc);cursor:pointer;}
 .tp-val{font-size:9px;font-family:var(--mono);color:var(--tx2);white-space:nowrap;}
+
+/* ── Tutorial overlay ── */
+#tourOverlay{position:fixed;inset:0;z-index:8000;pointer-events:none;}
+#tourOverlay.active{pointer-events:all;}
+#tourDim{position:absolute;inset:0;background:rgba(0,0,0,0);transition:background .35s;}
+#tourOverlay.active #tourDim{background:rgba(8,4,20,0.72);}
+#tourSpotlight{
+  position:absolute;border-radius:10px;
+  box-shadow:0 0 0 9999px rgba(8,4,20,0.72);
+  transition:all .38s cubic-bezier(.4,0,.2,1);
+  pointer-events:none;z-index:8001;
+  outline:2px solid rgba(124,58,237,0.7);
+  outline-offset:2px;
+}
+#tourCard{
+  position:absolute;z-index:8002;
+  background:#0e0820;border:1px solid rgba(124,58,237,0.45);
+  border-radius:14px;padding:18px 20px 14px;width:300px;
+  box-shadow:0 12px 48px rgba(75,23,151,0.45),0 0 0 1px rgba(124,58,237,0.2);
+  transition:all .38s cubic-bezier(.4,0,.2,1);
+  opacity:0;transform:scale(.93) translateY(6px);
+}
+#tourCard.show{opacity:1;transform:scale(1) translateY(0);}
+#tourCard .tc-label{font-size:9px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:#7c3aed;margin-bottom:8px;}
+#tourCard .tc-title{font-size:15px;font-weight:700;color:#e2d9f3;margin-bottom:6px;line-height:1.3;}
+#tourCard .tc-body{font-size:12px;color:#9488be;line-height:1.6;margin-bottom:12px;}
+#tourCard .tc-img{width:100%;border-radius:8px;margin-bottom:12px;object-fit:contain;max-height:100px;background:#0a0616;}
+#tourCard .tc-footer{display:flex;align-items:center;gap:8px;}
+#tourCard .tc-dots{display:flex;gap:5px;flex:1;}
+#tourCard .tc-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.12);transition:all .2s;}
+#tourCard .tc-dot.cur{background:#7c3aed;transform:scale(1.35);}
+#tourCard .tc-dot.done{background:rgba(124,58,237,0.4);}
+#tourCard .tc-btn{height:28px;padding:0 14px;border-radius:7px;border:none;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font);transition:all .15s;}
+#tourCard .tc-btn.sec{background:rgba(255,255,255,0.07);color:#9488be;}
+#tourCard .tc-btn.sec:hover{background:rgba(255,255,255,0.12);color:#e2d9f3;}
+#tourCard .tc-btn.pri{background:linear-gradient(135deg,#4b1797,#7c3aed);color:#fff;}
+#tourCard .tc-btn.pri:hover{opacity:.85;}
+#tourCard .tc-btn:disabled{opacity:.3;cursor:not-allowed;}
+#tourArrow{position:absolute;width:12px;height:12px;background:#0e0820;border:1px solid rgba(124,58,237,0.45);transform:rotate(45deg);z-index:8001;}
+.nav-tour-btn{width:100%;height:26px;background:rgba(124,58,237,0.12);border:1px solid rgba(124,58,237,0.25);border-radius:6px;color:#7c3aed;font-family:var(--font);font-size:9px;font-weight:700;letter-spacing:0.05em;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:5px;}
+.nav-tour-btn:hover{background:rgba(124,58,237,0.22);border-color:rgba(124,58,237,0.5);color:#a78bfa;}
 </style>
 </head>
 <body>
@@ -313,6 +354,7 @@ input[type=color]{width:0;height:0;opacity:0;position:absolute;}
       <input type="file" id="folderInput" webkitdirectory multiple accept="">
     </label>
     <div class="nav-status" id="folderStatus"></div>
+    <button class="nav-tour-btn" onclick="startTour()">▶ Tour</button>
   </div>
 </nav>
 
@@ -2378,6 +2420,320 @@ if(typeof ImageDecoder==='undefined'){
 renderAssetGrid();
 renderCasinoList();
 updateChips();
+</script>
+
+<!-- ══ TOUR OVERLAY ══ -->
+<div id="tourOverlay">
+  <div id="tourDim"></div>
+  <div id="tourSpotlight" style="display:none;"></div>
+  <div id="tourArrow" style="display:none;"></div>
+  <div id="tourCard" style="display:none;">
+    <div class="tc-label" id="tcLabel">Step 1 / 12</div>
+    <div class="tc-title" id="tcTitle">Welcome</div>
+    <img class="tc-img" id="tcImg" src="" alt="" style="display:none;">
+    <div class="tc-body" id="tcBody">Let's go!</div>
+    <div class="tc-footer">
+      <div class="tc-dots" id="tcDots"></div>
+      <button class="tc-btn sec" id="tcBtnPrev" onclick="tourPrev()">← Back</button>
+      <button class="tc-btn pri" id="tcBtnNext" onclick="tourNext()">Next →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════
+//  GUIDED TOUR
+// ═══════════════════════════════════════
+const ASSET_BASE = 'Support Files/football_assets_extracted/Football_Shootout_assets/';
+
+const TOUR_STEPS = [
+  {
+    target: null, tab: null,
+    label: 'Welcome',
+    title: '⚽ Football Skin Generator Tour',
+    body: 'This 2-minute tour walks through the full workflow: painting masks, configuring casino presets, and exporting ready-to-ship ZIP files. Press Next to begin.',
+    img: ASSET_BASE + 'player.webp',
+    pos: 'center'
+  },
+  {
+    target: '.nav-footer', tab: null,
+    label: 'Loading Assets',
+    title: '📂 Load your assets first',
+    body: 'Click "Load Assets" and select your Football_Shootout_assets folder. All 9 sprites load automatically — player, ball, and 7 goalkeeper poses.',
+    img: null, pos: 'right'
+  },
+  {
+    target: '#nbMask', tab: 'mask',
+    label: 'Tab 1 — Masks',
+    title: '⬡ Mask Editor',
+    body: 'The first tab is where you paint region masks. This only needs to be done once — masks are saved as JSON and reused for every casino forever.',
+    img: null, pos: 'right'
+  },
+  {
+    target: '#assetGrid', tab: 'mask',
+    label: 'Asset List',
+    title: '🧑 9 sprite assets',
+    body: 'Select any asset to start masking it. Coloured dots show coverage — grey means empty, amber means partial, green means fully masked.',
+    img: null, pos: 'right'
+  },
+  {
+    target: '#meCanvasWrap', tab: 'mask',
+    label: 'Canvas',
+    title: '🎨 The masking canvas',
+    body: 'The sprite is shown here with a coloured overlay. Paint directly onto it to define which pixels belong to each kit region. Zoom in for precision.',
+    img: ASSET_BASE + 'player.webp', pos: 'left'
+  },
+  {
+    target: '#toolPanel', tab: 'mask',
+    label: 'Region & Tools',
+    title: '🛠 Region tabs + Tool selector',
+    body: 'Pick a region (Shirt / Socks / Shorts / Skin / Number), then pick a tool: Wand flood-fills from a click, Range matches colour globally, Brush paints freehand, Lasso fills a shape.',
+    img: null, pos: 'left'
+  },
+  {
+    target: '#tbnAllGK', tab: 'mask',
+    label: 'GK Propagation',
+    title: '→ All GK — the big timesaver',
+    body: 'Once goalkeeper_idle is masked, this button broadcasts the mask to all 7 goalkeeper poses in one click. No need to repaint each one.',
+    img: ASSET_BASE + 'goalkeeper_idle.webp', pos: 'left'
+  },
+  {
+    target: '.frame-strip-area', tab: 'mask',
+    label: 'Frame Strip',
+    title: '🎞 Animation frames',
+    body: 'Every frame of the animated WebP is shown here. Paint one frame, then hit "Region → All" to copy that region to every frame at once.',
+    img: null, pos: 'top'
+  },
+  {
+    target: '.lp-footer', tab: 'mask',
+    label: 'Save Masks',
+    title: '💾 Save your masks as JSON',
+    body: 'Save separate JSON files for Player+Ball and Goalkeeper masks. Reload them next session — you\'ll never have to repaint from scratch again.',
+    img: null, pos: 'right'
+  },
+  {
+    target: '#nbPresets', tab: 'presets',
+    label: 'Tab 2 — Presets',
+    title: '◈ Casino Presets',
+    body: 'Switch to the Presets tab to define each casino\'s kit. Colours, patterns, and blend intensity are all set here.',
+    img: null, pos: 'right'
+  },
+  {
+    target: '#casinoList', tab: 'presets',
+    label: 'Casino List',
+    title: '🎰 One entry per casino',
+    body: 'Each row is one casino brand. Colour dots give a visual preview. Click "+ New" to add one, or use "Import CSV" to load 100+ brands from a spreadsheet.',
+    img: null, pos: 'right'
+  },
+  {
+    target: '#presetFormBody', tab: 'presets',
+    label: 'Preset Form',
+    title: '🎨 Kit colours & patterns',
+    body: 'Set Shirt, Socks, Shorts, Skin, and Number colours for both Player and GK kits. Pick a pattern — Solid, Vertical stripes, Diagonal, or Half & half. Use Blend Opacity to control colour intensity per region.',
+    img: null, pos: 'left'
+  },
+  {
+    target: '#nbGen', tab: 'gen',
+    label: 'Tab 3 — Export',
+    title: '⚡ Export & Package',
+    body: 'The final tab. All 4 status cards must go green before you can export. Select your casinos, pick a ZIP format, and click Export.',
+    img: null, pos: 'right'
+  },
+  {
+    target: '#genStatusBar', tab: 'gen',
+    label: 'Status Bar',
+    title: '✅ Status checks',
+    body: 'Assets loaded, masks complete, presets created, and 10 PNG slots filled — all four must be green. If any is amber, the export button stays locked.',
+    img: null, pos: 'bottom'
+  },
+  {
+    target: '#swapGrid', tab: 'gen',
+    label: 'PNG Asset Slots',
+    title: '🖼 10 required PNG assets',
+    body: 'Upload the 10 UI image files (loader_bar_bg, loader_logo, popup_body, etc.). Click any slot label, pick the PNG, and the dot turns green. All 10 must be filled before exporting.',
+    img: null, pos: 'top'
+  },
+  {
+    target: '#exportBtn', tab: 'gen',
+    label: 'Export!',
+    title: '📦 Generate & download',
+    body: 'Click Export. The tool processes every selected casino — recolouring all 9 WebP frames per preset — and downloads the ZIPs automatically. Watch the progress log as each casino completes.',
+    img: ASSET_BASE + 'ball.webp', pos: 'top'
+  },
+];
+
+let tourStep = 0;
+let tourActive = false;
+
+function startTour() {
+  tourStep = 0;
+  tourActive = true;
+  document.getElementById('tourOverlay').classList.add('active');
+  renderTourStep();
+}
+
+function endTour() {
+  tourActive = false;
+  const ov = document.getElementById('tourOverlay');
+  ov.classList.remove('active');
+  document.getElementById('tourSpotlight').style.display = 'none';
+  document.getElementById('tourArrow').style.display = 'none';
+  const card = document.getElementById('tourCard');
+  card.classList.remove('show');
+  setTimeout(() => { card.style.display = 'none'; }, 350);
+}
+
+function tourNext() {
+  if (tourStep >= TOUR_STEPS.length - 1) { endTour(); return; }
+  tourStep++;
+  renderTourStep();
+}
+
+function tourPrev() {
+  if (tourStep <= 0) return;
+  tourStep--;
+  renderTourStep();
+}
+
+function renderTourStep() {
+  const step = TOUR_STEPS[tourStep];
+
+  // Switch tab if needed
+  if (step.tab) switchTab(step.tab);
+
+  // Build dots
+  const dotsEl = document.getElementById('tcDots');
+  dotsEl.innerHTML = '';
+  TOUR_STEPS.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'tc-dot' + (i === tourStep ? ' cur' : i < tourStep ? ' done' : '');
+    dotsEl.appendChild(d);
+  });
+
+  // Update card content
+  document.getElementById('tcLabel').textContent = 'Step ' + (tourStep + 1) + ' / ' + TOUR_STEPS.length;
+  document.getElementById('tcTitle').textContent = step.title;
+  document.getElementById('tcBody').textContent = step.body;
+  document.getElementById('tcBtnPrev').disabled = tourStep === 0;
+  document.getElementById('tcBtnNext').textContent = tourStep === TOUR_STEPS.length - 1 ? 'Finish ✓' : 'Next →';
+
+  const imgEl = document.getElementById('tcImg');
+  if (step.img) {
+    imgEl.src = step.img;
+    imgEl.style.display = 'block';
+  } else {
+    imgEl.style.display = 'none';
+  }
+
+  // Position spotlight and card after a tick (allow tab switch to render)
+  setTimeout(() => positionTour(step), 60);
+}
+
+function positionTour(step) {
+  const spotlight = document.getElementById('tourSpotlight');
+  const card = document.getElementById('tourCard');
+  const arrow = document.getElementById('tourArrow');
+
+  card.style.display = 'block';
+  arrow.style.display = 'none';
+
+  if (step.pos === 'center' || !step.target) {
+    spotlight.style.display = 'none';
+    // Center card
+    card.style.left = '50%';
+    card.style.top = '50%';
+    card.style.transform = 'translate(-50%,-50%)';
+    card.style.right = 'auto';
+    card.style.bottom = 'auto';
+    setTimeout(() => card.classList.add('show'), 20);
+    return;
+  }
+
+  const el = document.querySelector(step.target);
+  if (!el) {
+    spotlight.style.display = 'none';
+    card.style.left = '50%';
+    card.style.top = '50%';
+    card.style.transform = 'translate(-50%,-50%)';
+    card.style.right = 'auto';
+    card.style.bottom = 'auto';
+    setTimeout(() => card.classList.add('show'), 20);
+    return;
+  }
+
+  const pad = 8;
+  const r = el.getBoundingClientRect();
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const cw = 300; // card width
+  const gap = 16; // gap between spotlight and card
+
+  // Show spotlight
+  spotlight.style.display = 'block';
+  spotlight.style.left = (r.left - pad) + 'px';
+  spotlight.style.top = (r.top - pad) + 'px';
+  spotlight.style.width = (r.width + pad * 2) + 'px';
+  spotlight.style.height = (r.height + pad * 2) + 'px';
+
+  // Position card
+  card.style.transform = 'none';
+  let cl, ct;
+
+  if (step.pos === 'right') {
+    cl = r.right + pad + gap;
+    ct = r.top + r.height / 2 - 120;
+    // Arrow pointing left
+    arrow.style.display = 'block';
+    arrow.style.left = (cl - 6) + 'px';
+    arrow.style.top = (r.top + r.height / 2 - 6) + 'px';
+    arrow.style.borderRight = 'none';
+    arrow.style.borderBottom = 'none';
+  } else if (step.pos === 'left') {
+    cl = r.left - pad - gap - cw;
+    ct = r.top + r.height / 2 - 120;
+    // Arrow pointing right
+    arrow.style.display = 'block';
+    arrow.style.left = (r.left - pad - gap - 6) + 'px';
+    arrow.style.top = (r.top + r.height / 2 - 6) + 'px';
+    arrow.style.borderLeft = 'none';
+    arrow.style.borderTop = 'none';
+  } else if (step.pos === 'bottom') {
+    cl = r.left + r.width / 2 - cw / 2;
+    ct = r.bottom + pad + gap;
+    arrow.style.display = 'block';
+    arrow.style.left = (r.left + r.width / 2 - 6) + 'px';
+    arrow.style.top = (r.bottom + pad + gap - 6) + 'px';
+    arrow.style.borderBottom = 'none';
+    arrow.style.borderRight = 'none';
+  } else { // top
+    cl = r.left + r.width / 2 - cw / 2;
+    ct = r.top - pad - gap - 200;
+    arrow.style.display = 'block';
+    arrow.style.left = (r.left + r.width / 2 - 6) + 'px';
+    arrow.style.top = (r.top - pad - gap - 6) + 'px';
+    arrow.style.borderTop = 'none';
+    arrow.style.borderLeft = 'none';
+  }
+
+  // Clamp within viewport
+  cl = Math.max(8, Math.min(vw - cw - 8, cl));
+  ct = Math.max(8, Math.min(vh - 240, ct));
+
+  card.style.left = cl + 'px';
+  card.style.top = ct + 'px';
+  card.style.right = 'auto';
+  card.style.bottom = 'auto';
+
+  card.classList.remove('show');
+  setTimeout(() => card.classList.add('show'), 20);
+}
+
+// Close tour on Escape
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && tourActive) endTour();
+  if (e.key === 'ArrowRight' && tourActive) { e.preventDefault(); tourNext(); }
+  if (e.key === 'ArrowLeft' && tourActive) { e.preventDefault(); tourPrev(); }
+});
 </script>
 
 <!-- T-Rex modal -->
