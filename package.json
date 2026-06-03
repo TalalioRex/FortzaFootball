@@ -11,7 +11,8 @@
   },
   "devDependencies": {
     "electron": "^31.0.0",
-    "electron-builder": "^24.13.3"
+    "electron-builder": "^24.13.3",
+    "pptxgenjs": "^4.0.1"
   },
   "build": {
     "appId": "com.gamelounge.football-skin-generator",
@@ -27,7 +28,12 @@
     ],
     "win": {
       "target": [
-        { "target": "nsis", "arch": ["x64"] }
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
       "artifactName": "FootballSkinGenerator-Setup-${version}.${ext}"
     },
@@ -38,7 +44,13 @@
     },
     "mac": {
       "target": [
-        { "target": "dmg", "arch": ["x64", "arm64"] }
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
       ],
       "artifactName": "FootballSkinGenerator-${version}.${ext}"
     },
