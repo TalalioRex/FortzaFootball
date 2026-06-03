@@ -2481,7 +2481,7 @@ const TOUR_STEPS = [
     label: 'Canvas',
     title: '🎨 The masking canvas',
     body: 'The sprite is shown here with a coloured overlay. Paint directly onto it to define which pixels belong to each kit region. Zoom in for precision.',
-    img: ASSET_BASE + 'player.webp', pos: 'left'
+    img: ASSET_BASE + 'player.webp', pos: 'center'
   },
   {
     target: '#toolPanel', tab: 'mask',
@@ -2526,7 +2526,7 @@ const TOUR_STEPS = [
     img: null, pos: 'right'
   },
   {
-    target: '#presetFormBody', tab: 'presets',
+    target: '#panePresets .editor-main', tab: 'presets',
     label: 'Preset Form',
     title: '🎨 Kit colours & patterns',
     body: 'Set Shirt, Socks, Shorts, Skin, and Number colours for both Player and GK kits. Pick a pattern — Solid, Vertical stripes, Diagonal, or Half & half. Use Blend Opacity to control colour intensity per region.',
@@ -2633,99 +2633,120 @@ function positionTour(step) {
   const spotlight = document.getElementById('tourSpotlight');
   const card = document.getElementById('tourCard');
   const arrow = document.getElementById('tourArrow');
-
-  card.style.display = 'block';
-  arrow.style.display = 'none';
-
-  if (step.pos === 'center' || !step.target) {
-    spotlight.style.display = 'none';
-    // Center card
-    card.style.left = '50%';
-    card.style.top = '50%';
-    card.style.transform = 'translate(-50%,-50%)';
-    card.style.right = 'auto';
-    card.style.bottom = 'auto';
-    setTimeout(() => card.classList.add('show'), 20);
-    return;
-  }
-
-  const el = document.querySelector(step.target);
-  if (!el) {
-    spotlight.style.display = 'none';
-    card.style.left = '50%';
-    card.style.top = '50%';
-    card.style.transform = 'translate(-50%,-50%)';
-    card.style.right = 'auto';
-    card.style.bottom = 'auto';
-    setTimeout(() => card.classList.add('show'), 20);
-    return;
-  }
-
-  const pad = 8;
-  const r = el.getBoundingClientRect();
   const vw = window.innerWidth;
   const vh = window.innerHeight;
-  const cw = 300; // card width
-  const gap = 16; // gap between spotlight and card
+  const cw = 300;
+  const pad = 8;
+  const gap = 16;
 
-  // Show spotlight
-  spotlight.style.display = 'block';
-  spotlight.style.left = (r.left - pad) + 'px';
-  spotlight.style.top = (r.top - pad) + 'px';
-  spotlight.style.width = (r.width + pad * 2) + 'px';
-  spotlight.style.height = (r.height + pad * 2) + 'px';
+  // Reset arrow CSS completely each step to prevent bleed
+  arrow.style.cssText = 'position:absolute;width:12px;height:12px;background:#0e0820;border:1px solid rgba(124,58,237,0.45);transform:rotate(45deg);z-index:8001;display:none;';
 
-  // Position card
-  card.style.transform = 'none';
-  let cl, ct;
+  card.style.display = 'block';
+  card.classList.remove('show');
 
-  if (step.pos === 'right') {
-    cl = r.right + pad + gap;
-    ct = r.top + r.height / 2 - 120;
-    // Arrow pointing left
-    arrow.style.display = 'block';
-    arrow.style.left = (cl - 6) + 'px';
-    arrow.style.top = (r.top + r.height / 2 - 6) + 'px';
-    arrow.style.borderRight = 'none';
-    arrow.style.borderBottom = 'none';
-  } else if (step.pos === 'left') {
-    cl = r.left - pad - gap - cw;
-    ct = r.top + r.height / 2 - 120;
-    // Arrow pointing right
-    arrow.style.display = 'block';
-    arrow.style.left = (r.left - pad - gap - 6) + 'px';
-    arrow.style.top = (r.top + r.height / 2 - 6) + 'px';
-    arrow.style.borderLeft = 'none';
-    arrow.style.borderTop = 'none';
-  } else if (step.pos === 'bottom') {
-    cl = r.left + r.width / 2 - cw / 2;
-    ct = r.bottom + pad + gap;
-    arrow.style.display = 'block';
-    arrow.style.left = (r.left + r.width / 2 - 6) + 'px';
-    arrow.style.top = (r.bottom + pad + gap - 6) + 'px';
-    arrow.style.borderBottom = 'none';
-    arrow.style.borderRight = 'none';
-  } else { // top
-    cl = r.left + r.width / 2 - cw / 2;
-    ct = r.top - pad - gap - 200;
-    arrow.style.display = 'block';
-    arrow.style.left = (r.left + r.width / 2 - 6) + 'px';
-    arrow.style.top = (r.top - pad - gap - 6) + 'px';
-    arrow.style.borderTop = 'none';
-    arrow.style.borderLeft = 'none';
+  function centerCard() {
+    spotlight.style.display = 'none';
+    arrow.style.display = 'none';
+    card.style.left = '50%';
+    card.style.top = '50%';
+    card.style.transform = 'translate(-50%,-50%)';
+    card.style.right = 'auto';
+    card.style.bottom = 'auto';
+    setTimeout(() => card.classList.add('show'), 20);
   }
 
-  // Clamp within viewport
-  cl = Math.max(8, Math.min(vw - cw - 8, cl));
-  ct = Math.max(8, Math.min(vh - 240, ct));
+  if (step.pos === 'center' || !step.target) { centerCard(); return; }
 
-  card.style.left = cl + 'px';
-  card.style.top = ct + 'px';
-  card.style.right = 'auto';
-  card.style.bottom = 'auto';
+  const el = document.querySelector(step.target);
+  if (!el) { centerCard(); return; }
 
-  card.classList.remove('show');
-  setTimeout(() => card.classList.add('show'), 20);
+  const r = el.getBoundingClientRect();
+
+  // Fall back to center if element is zero-size (hidden parent) or off-screen
+  if ((r.width === 0 && r.height === 0) || r.bottom < 0 || r.top > vh || r.right < 0 || r.left > vw) {
+    centerCard(); return;
+  }
+
+  // Clamp spotlight to viewport
+  spotlight.style.display = 'block';
+  spotlight.style.left   = Math.max(0, r.left - pad) + 'px';
+  spotlight.style.top    = Math.max(0, r.top  - pad) + 'px';
+  spotlight.style.width  = Math.min(vw, r.width  + pad * 2) + 'px';
+  spotlight.style.height = Math.min(vh, r.height + pad * 2) + 'px';
+
+  // Hide card offscreen so we can measure its actual rendered height
+  card.style.transform = 'none';
+  card.style.left = '-9999px';
+  card.style.top  = '-9999px';
+
+  requestAnimationFrame(() => {
+    const ch = Math.max(card.offsetHeight || 0, 160); // actual height, min 160
+
+    // Determine best position — auto-flip if requested side has no room
+    let pos = step.pos;
+    const roomLeft   = r.left - pad - gap - cw;
+    const roomRight  = vw - (r.right + pad + gap + cw);
+    const roomTop    = r.top - pad - gap - ch;
+    const roomBottom = vh - (r.bottom + pad + gap + ch);
+
+    if (pos === 'left'   && roomLeft   < 8) pos = roomRight  >= 8 ? 'right'  : 'float';
+    if (pos === 'right'  && roomRight  < 8) pos = roomLeft   >= 8 ? 'left'   : 'float';
+    if (pos === 'top'    && roomTop    < 8) pos = roomBottom >= 8 ? 'bottom' : 'float';
+    if (pos === 'bottom' && roomBottom < 8) pos = roomTop    >= 8 ? 'top'    : 'float';
+
+    let cl, ct;
+
+    if (pos === 'float') {
+      // No room on any side — float near centre of viewport, no arrow
+      arrow.style.display = 'none';
+      cl = vw / 2 - cw / 2;
+      ct = vh / 2 - ch  / 2;
+    } else if (pos === 'right') {
+      cl = r.right + pad + gap;
+      ct = r.top + r.height / 2 - ch / 2;
+      arrow.style.display = 'block';
+      arrow.style.left = (cl - 6) + 'px';
+      arrow.style.top  = (r.top + r.height / 2 - 6) + 'px';
+      arrow.style.borderRight = 'none';
+      arrow.style.borderBottom = 'none';
+    } else if (pos === 'left') {
+      cl = r.left - pad - gap - cw;
+      ct = r.top + r.height / 2 - ch / 2;
+      arrow.style.display = 'block';
+      arrow.style.left = (r.left - pad - gap - 6) + 'px';
+      arrow.style.top  = (r.top + r.height / 2 - 6) + 'px';
+      arrow.style.borderLeft = 'none';
+      arrow.style.borderTop  = 'none';
+    } else if (pos === 'bottom') {
+      cl = r.left + r.width / 2 - cw / 2;
+      ct = r.bottom + pad + gap;
+      arrow.style.display = 'block';
+      arrow.style.left = (r.left + r.width / 2 - 6) + 'px';
+      arrow.style.top  = (r.bottom + pad + gap - 6) + 'px';
+      arrow.style.borderBottom = 'none';
+      arrow.style.borderRight  = 'none';
+    } else { // top
+      cl = r.left + r.width / 2 - cw / 2;
+      ct = r.top - pad - gap - ch;
+      arrow.style.display = 'block';
+      arrow.style.left = (r.left + r.width / 2 - 6) + 'px';
+      arrow.style.top  = (r.top - pad - gap - 6) + 'px';
+      arrow.style.borderTop  = 'none';
+      arrow.style.borderLeft = 'none';
+    }
+
+    // Final clamp using actual card height
+    cl = Math.max(8, Math.min(vw - cw - 8, cl));
+    ct = Math.max(8, Math.min(vh - ch - 8, ct));
+
+    card.style.left   = cl + 'px';
+    card.style.top    = ct + 'px';
+    card.style.right  = 'auto';
+    card.style.bottom = 'auto';
+
+    setTimeout(() => card.classList.add('show'), 20);
+  });
 }
 
 // Close tour on Escape
